@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pallet Flow</title>
+<meta name="description" content="A live supply-chain simulation: forklifts load pallets, trucks deliver to stores. Find the bottleneck.">
+<style>
+:root{--bg:#0d1117;--card:#151b24;--line:#283241;--ink:#e8eef6;--dim:#93a1b5;--acc:#ff9f1c;--good:#4cc38a;--bad:#ef5b5b;--blue:#58a6ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+main{max-width:980px;margin:0 auto;padding:0 16px 64px}
+header{padding:56px 0 8px;max-width:720px}
+.eyebrow{color:var(--acc);font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+h1{font-size:clamp(32px,8vw,52px);line-height:1.05;margin:10px 0 14px;letter-spacing:-.02em;text-wrap:balance}
+h2{font-size:22px;margin:0 0 6px}
+p{margin:0 0 12px;color:var(--dim)}p b,li b{color:var(--ink)}
+section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:20px}
+.sim{display:grid;gap:18px;grid-template-columns:1fr}
+@media(min-width:820px){.sim{grid-template-columns:minmax(0,460px) 1fr;align-items:start}}
+canvas{display:block;width:100%;aspect-ratio:360/520;border-radius:12px;background:#0a0d12;border:1px solid var(--line)}
+label{font-size:14px;color:var(--dim);display:flex;justify-content:space-between;margin-top:10px}
+label b{color:var(--ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--acc);height:30px;margin:0}
+.verdict{border-radius:12px;padding:12px 14px;background:#0f141c;border:1px solid var(--line);border-left:4px solid var(--good);margin-bottom:12px}
+.verdict b{display:block;font-size:17px}.verdict span{font-size:14px;color:var(--dim)}
+.bar{margin:8px 0}.bar .lab{display:flex;justify-content:space-between;font-size:13px;color:var(--dim)}
+.bar .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
+.track{height:10px;background:#0f141c;border-radius:6px;overflow:hidden;margin-top:3px}
+.fill{height:100%;border-radius:6px;transition:width .3s}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.tile{background:#0f141c;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.tile small{display:block;color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.tile b{font-size:19px;font-variant-numeric:tabular-nums}
+ul{margin:8px 0 0;padding-left:20px;color:var(--dim)}li{margin-bottom:6px}
+.btns{display:flex;gap:8px;margin-top:12px}
+button{background:none;color:var(--ink);border:1px solid var(--line);font:inherit;padding:10px 14px;border-radius:10px;cursor:pointer;min-height:44px;flex:1}
+footer{color:var(--dim);font-size:13px;text-align:center;margin-top:28px}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="eyebrow">Abstract Projects · 03</div>
+  <h1>A chain moves at the speed of its slowest link.</h1>
+  <p>Forklifts pull pallets from the racks and load trucks. Trucks drive to stores. Shoppers empty the shelves. <b>Change the numbers and watch where things jam up.</b></p>
+</header>
+
+<section class="sim">
+  <canvas id="c"></canvas>
+  <div>
+    <div class="verdict" id="verdict"><b id="vt">Warming up…</b><span id="vs">Give it a few seconds.</span></div>
+    <h2>Pallets per minute</h2>
+    <div class="bar"><div class="lab"><span>Shoppers want</span><b id="bD"></b></div><div class="track"><div class="fill" id="fD" style="background:var(--blue)"></div></div></div>
+    <div class="bar"><div class="lab"><span>Forklifts can load</span><b id="bF"></b></div><div class="track"><div class="fill" id="fF" style="background:var(--acc)"></div></div></div>
+    <div class="bar"><div class="lab"><span>Trucks can carry</span><b id="bT"></b></div><div class="track"><div class="fill" id="fT" style="background:var(--good)"></div></div></div>
+
+    <label>Forklifts <b id="vF"></b></label><input type="range" id="sF" min="1" max="6" value="2">
+    <label>Trucks <b id="vK"></b></label><input type="range" id="sK" min="1" max="6" value="2">
+    <label>Pallets per truck <b id="vC"></b></label><input type="range" id="sC" min="2" max="12" step="2" value="8">
+    <label>Shopper demand, per store <b id="vD"></b></label><input type="range" id="sD" min="1" max="12" value="4">
+    <label>Speed <b id="vS"></b></label><input type="range" id="sS" min="1" max="8" value="2">
+
+    <div class="tiles">
+      <div class="tile"><small>Shelves stocked</small><b id="tA">–</b></div>
+      <div class="tile"><small>Pallets delivered</small><b id="tDel">0</b></div>
+      <div class="tile"><small>Forklifts busy</small><b id="tFu">–</b></div>
+      <div class="tile"><small>Trucks at depot</small><b id="tTw">–</b></div>
+    </div>
+    <div class="btns"><button id="pause">Pause</button><button id="reset">Reset</button></div>
+  </div>
+</section>
+
+<section>
+  <h2>Things to try</h2>
+  <ul>
+    <li><b>Find the bottleneck.</b> Push demand to 8. Shelves go empty. Which bar is shortest? Fix only that one.</li>
+    <li><b>Waste money.</b> Leave 1 forklift and add 6 trucks. Nothing improves: the trucks just queue at the dock. Capacity anywhere except the bottleneck is wasted.</li>
+    <li><b>Move the bottleneck.</b> Add forklifts until trucks become the limit. Fixing one constraint always reveals the next.</li>
+    <li><b>Big trucks vs small trucks.</b> Small trucks leave sooner but carry less. Big ones take longer to fill, so stores wait, then get a flood.</li>
+    <li><b>Run it tight.</b> Set capacity just above demand. On paper it works. In practice shoppers arrive randomly, and shelves still run out now and then. That gap is why real networks carry spare stock and spare capacity.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>The theory underneath</h2>
+  <p><b>Theory of Constraints:</b> a system's output equals the output of its tightest step. Here: output = the smallest of demand, forklift capacity and truck capacity.</p>
+  <p><b>Queueing:</b> work piles up in front of the bottleneck (trucks waiting at docks) and starves everything after it (empty shelves).</p>
+  <p><b>Pull, not push:</b> trucks here only load when a store is running low, so a healthy system shows idle forklifts. Idle time away from the bottleneck isn't waste. It's slack.</p>
+</section>
+<footer>Single-file HTML, no libraries. Part of Abstract Projects.</footer>
+</main>
+
+<script>
+const $=s=>document.querySelector(s);
+const W=360,H=520,RACK_Y=44,DOOR_Y=150,DOCK_Y=192,HOLD_Y=262,OUT_Y=300,BACK_Y=322,STORE_Y=414;
+const FK_SPEED=60,TR_SPEED=26,HANDLE=1.2,UNLOAD=.5,NEED=12;
+let P={F:2,K:2,C:8,D:4,S:2},paused=false,time,docks,holds,stores,forks,trucks,delivered,avail,fUtil,tWait,cycle,trip,dockSeq;
+const expo=m=>-Math.log(1-Math.random())*m;
+
+function reset(){time=0;delivered=0;avail=1;fUtil=0;tWait=0;cycle=8;trip=34;dockSeq=0;
+  docks=[80,180,280].map(x=>({x,truck:null}));holds=[30,130,230,330].map(x=>({x,truck:null}));
+  stores=[60,180,300].map((x,i)=>({x,name:'Store '+'ABC'[i],stock:6,inbound:0,planned:0,next:expo(60/P.D),flash:0}));
+  forks=[];trucks=[];sync()}
+function newTruck(){const h=holds.find(h=>!h.truck)||holds[trucks.length%4];const t={x:h.x,y:HOLD_Y,a:Math.PI/2,da:Math.PI/2,state:'wait',path:[],loaded:0,reserved:0,cap:P.C,dock:null,hold:h,store:null,timer:0,retire:false};h.truck=t;return t}
+function sync(){while(forks.length<P.F){const i=forks.length;forks.push({x:40+i*26,y:118,hx:40+i*26,a:-Math.PI/2,da:-Math.PI/2,state:'idle',path:[],truck:null,carry:false,timer:0,t0:0})}
+  while(forks.length>P.F){const f=forks.pop();if(f.truck)f.truck.reserved--}
+  const live=trucks.filter(t=>!t.retire);
+  for(let i=live.length;i<P.K;i++){const r=trucks.find(t=>t.retire);if(r)r.retire=false;else trucks.push(newTruck())}
+  for(let i=live.length-1;i>=P.K;i--)live[i].retire=true}
+
+function move(e,sp,dt){let d=sp*dt;while(d>0&&e.path.length){const p=e.path[0],dx=p[0]-e.x,dy=p[1]-e.y,L=Math.hypot(dx,dy);
+    if(L>.01)e.a=Math.atan2(dy,dx)+(p[2]?Math.PI:0);
+    if(L<=d){e.x=p[0];e.y=p[1];d-=L;e.path.shift()}else{e.x+=dx/L*d;e.y+=dy/L*d;d=0}}
+  let df=e.a-e.da;df=Math.atan2(Math.sin(df),Math.cos(df));e.da+=df*Math.min(1,dt*9);return!e.path.length}
+
+function toDock(t,d,fromRoad){d.truck=t;t.dock=d;if(t.hold){t.hold.truck=null;t.hold=null}
+  t.path=(fromRoad?[[d.x,BACK_Y]]:[]).concat([[d.x,HOLD_Y],[d.x,DOCK_Y,1]]);t.state='dockIn'}
+function step(dt){time+=dt;
+  // stores
+  for(const s of stores){s.flash=Math.max(0,s.flash-dt);s.next-=dt;while(s.next<=0){s.next+=expo(60/P.D);
+      if(s.stock>0){s.stock--;avail+=(1-avail)*.03}else{s.flash=.6;avail+=(0-avail)*.03}}}
+  // trucks
+  for(const t of trucks){
+    if(t.state==='wait'){if(t.retire){t.hold&&(t.hold.truck=null);t.dead=true;continue}
+      const d=docks.find(d=>!d.truck);if(d)toDock(t,d,false)}
+    else if(t.state==='dockIn'){if(move(t,TR_SPEED,dt)){t.state='loading';t.cap=P.C;t.store=null;t.seq=dockSeq++}}
+    else if(t.state==='loading'){
+      if(!t.store){if(t.retire&&!t.loaded&&!t.reserved){t.dock.truck=null;t.dead=true;continue}
+        const s=stores.slice().sort((a,b)=>(a.stock+a.inbound+a.planned)-(b.stock+b.inbound+b.planned))[0];
+        if(s.stock+s.inbound+s.planned<NEED){t.store=s;s.planned+=t.cap}}
+      else if(t.loaded>=t.cap&&!t.reserved){const s=t.store;s.planned-=t.cap;s.inbound+=t.loaded;const dx=t.dock.x;t.dock.truck=null;t.dock=null;
+        t.path=[[dx,OUT_Y],[s.x,OUT_Y],[s.x,STORE_Y]];t.state='out';t.t0=time}}
+    else if(t.state==='out'){if(move(t,TR_SPEED,dt)){t.state='unload';t.timer=UNLOAD}}
+    else if(t.state==='unload'){t.timer-=dt;while(t.timer<=0&&t.loaded>0){t.timer+=UNLOAD;t.loaded--;t.store.stock++;t.store.inbound--;delivered++}
+      if(!t.loaded){const s=t.store;t.store=null;const d=docks.find(d=>!d.truck);
+        if(d&&!t.retire){t.path=[[s.x,BACK_Y]];toDock(t,d,true);t.path.unshift([s.x,BACK_Y]);t.state='backDock'}
+        else{const h=holds.find(h=>!h.truck)||holds[0];h.truck=t;t.hold=h;t.path=[[s.x,BACK_Y],[h.x,BACK_Y],[h.x,HOLD_Y]];t.state='back'}}}
+    else if(t.state==='back'||t.state==='backDock'){if(move(t,TR_SPEED,dt)){trip+=((time-t.t0)-trip)*.3;
+        if(t.state==='back')t.state='wait';else{t.state='loading';t.cap=P.C;t.store=null;t.seq=dockSeq++}}}
+  }
+  trucks=trucks.filter(t=>!t.dead);
+  // forklifts
+  let busy=0;
+  for(const f of forks){
+    if(f.state==='idle'||f.state==='home'){
+      const t=trucks.filter(t=>t.state==='loading'&&t.store&&t.loaded+t.reserved<t.cap).sort((a,b)=>a.seq-b.seq)[0];
+      if(t){t.reserved++;f.truck=t;f.t0=time;f.path=[[30+Math.random()*300,RACK_Y]];f.state='toRack'}
+      else if(f.state==='home'){if(move(f,FK_SPEED,dt))f.state='idle'}}
+    if(f.state==='toRack'){if(move(f,FK_SPEED,dt)){f.state='pick';f.timer=HANDLE}}
+    else if(f.state==='pick'){f.timer-=dt;if(f.timer<=0){f.carry=true;f.path=[[f.truck.dock.x+(Math.random()*10-5),DOOR_Y-4]];f.state='toDock'}}
+    else if(f.state==='toDock'){if(move(f,FK_SPEED,dt)){f.state='place';f.timer=HANDLE}}
+    else if(f.state==='place'){f.timer-=dt;if(f.timer<=0){f.carry=false;f.truck.loaded++;f.truck.reserved--;f.truck=null;cycle+=((time-f.t0)-cycle)*.15;f.path=[[f.hx,118]];f.state='home'}}
+    if(f.state!=='idle'&&f.state!=='home')busy++}
+  const k=Math.min(1,dt/15);fUtil+=(busy/forks.length-fUtil)*k;
+  const waiting=trucks.filter(t=>t.state==='wait'||t.state==='loading'||t.state==='dockIn').length;tWait+=(waiting/Math.max(1,trucks.length)-tWait)*k}
+
+/* ---------- drawing ---------- */
+function rr(x,a,b,w,h,r){x.beginPath();x.roundRect(a,b,w,h,r);x.fill()}
+function pallet(x,a,b,s){x.fillStyle='#c98f4e';x.fillRect(a-s/2,b-s/2,s,s);x.strokeStyle='#7d5526';x.lineWidth=.6;x.strokeRect(a-s/2,b-s/2,s,s)}
+function draw(){const c=$('#c'),r=c.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2),cw=Math.round(r.width*d),ch=Math.round(r.height*d);
+  if(c.width!==cw||c.height!==ch){c.width=cw;c.height=ch}const x=c.getContext('2d'),s=cw/W;x.setTransform(s,0,0,s,0,0);x.clearRect(0,0,W,H);
+  // yard + roads
+  x.fillStyle='#12171f';x.fillRect(0,0,W,H);
+  x.fillStyle='#252c38';x.fillRect(0,OUT_Y-14,W,BACK_Y-OUT_Y+28);
+  for(const dk of docks)x.fillRect(dk.x-13,DOOR_Y,26,OUT_Y-DOOR_Y);
+  for(const h of holds)x.fillRect(h.x-13,HOLD_Y-30,26,OUT_Y-HOLD_Y+30);
+  for(const st of stores)x.fillRect(st.x-13,BACK_Y,26,STORE_Y+30-BACK_Y);
+  x.strokeStyle='#4a5466';x.lineWidth=1;x.setLineDash([8,8]);x.beginPath();x.moveTo(0,(OUT_Y+BACK_Y)/2);x.lineTo(W,(OUT_Y+BACK_Y)/2);x.stroke();x.setLineDash([]);
+  // warehouse
+  x.fillStyle='#1c2430';rr(x,8,8,W-16,DOOR_Y-6,6);x.strokeStyle='#3a4658';x.lineWidth=2;x.strokeRect(8,8,W-16,DOOR_Y-6);
+  x.fillStyle='#93a1b5';x.font='600 9px system-ui';x.fillText('WAREHOUSE',16,DOOR_Y-12);
+  x.fillStyle='#2b3545';x.fillRect(20,14,W-40,20);for(let i=0;i<26;i++){pallet(x,28+i*12.2,19,7);pallet(x,28+i*12.2,29,7)}
+  for(const dk of docks){x.fillStyle='#0a0d12';x.fillRect(dk.x-12,DOOR_Y-1,24,5);x.fillStyle=dk.truck&&dk.truck.state==='loading'?'#ff9f1c':'#3a4658';x.fillRect(dk.x-12,DOOR_Y-3,24,2)}
+  // stores
+  stores.forEach(st=>{const empty=st.stock===0;x.fillStyle=empty?'#3a1d20':'#1c2430';rr(x,st.x-50,STORE_Y+34,100,66,6);
+    x.strokeStyle=empty?'#ef5b5b':'#3a4658';x.lineWidth=empty?2:1.5;x.beginPath();x.roundRect(st.x-50,STORE_Y+34,100,66,6);x.stroke();
+    x.fillStyle=empty?'#ef5b5b':'#e8eef6';x.font='600 10px system-ui';x.fillText(st.name,st.x-43,STORE_Y+48);
+    x.textAlign='right';x.fillText(empty?'EMPTY':st.stock+'',st.x+43,STORE_Y+48);x.textAlign='left';
+    for(let i=0;i<Math.min(st.stock,20);i++)pallet(x,st.x-39+(i%10)*8.7,STORE_Y+60+Math.floor(i/10)*10,7);
+    if(st.flash>0){x.fillStyle='rgba(239,91,91,'+st.flash+')';x.font='11px system-ui';x.fillText('✕ lost sale',st.x-28,STORE_Y+92)}});
+  // trucks
+  for(const t of trucks){x.save();x.translate(t.x,t.y);x.rotate(t.da);x.globalAlpha=t.retire?.5:1;
+    x.fillStyle='#d9dee6';rr(x,-28,-10,40,20,2);x.fillStyle='#58a6ff';rr(x,13,-9,13,18,3);x.fillStyle='#0d1117';x.fillRect(21,-7,3,14);
+    const cols=Math.ceil(t.cap/2),sz=Math.min(8,36/cols-1);for(let i=0;i<t.loaded;i++)pallet(x,-25+sz/2+Math.floor(i/2)*(sz+1),(i%2?5:-5),sz);x.restore()}
+  // forklifts
+  for(const f of forks){x.save();x.translate(f.x,f.y);x.rotate(f.da);x.fillStyle='#ffcc33';rr(x,-6,-4.5,10,9,2);x.fillStyle='#222';x.fillRect(-3,-3,4,6);
+    x.strokeStyle='#bbb';x.lineWidth=1;x.beginPath();x.moveTo(4,-2.5);x.lineTo(10,-2.5);x.moveTo(4,2.5);x.lineTo(10,2.5);x.stroke();if(f.carry)pallet(x,9,0,7);x.restore()}
+}
+
+/* ---------- ui ---------- */
+function ui(){const dem=3*P.D,fk=P.F*60/cycle,tr=P.K*P.C*60/trip,mx=Math.max(dem,fk,tr,1);
+  $('#bD').textContent=dem.toFixed(0);$('#bF').textContent=fk.toFixed(0);$('#bT').textContent=tr.toFixed(0);
+  $('#fD').style.width=dem/mx*100+'%';$('#fF').style.width=fk/mx*100+'%';$('#fT').style.width=tr/mx*100+'%';
+  $('#tA').textContent=(avail*100).toFixed(0)+'%';$('#tA').style.color=avail>.97?'var(--good)':avail>.85?'var(--acc)':'var(--bad)';
+  $('#tDel').textContent=delivered.toLocaleString();$('#tFu').textContent=(fUtil*100).toFixed(0)+'%';$('#tTw').textContent=(tWait*100).toFixed(0)+'%';
+  let t,sub,col='var(--bad)';
+  if(time<12){t='Warming up…';sub='Give it a few seconds.';col='var(--dim)'}
+  else if(avail>.97){col='var(--good)';t='Flowing. Shelves are stocked.';sub=fUtil<.5?'Forklifts are idle half the time: you have slack to spare.':'Supply is keeping up with demand.'}
+  else if(fk<dem*1.05&&fk<=tr){t='Bottleneck: forklifts';sub='They can\'t load as fast as shoppers buy. Trucks sit at the dock waiting.'}
+  else if(tr<dem*1.05){t='Bottleneck: trucks';sub='Not enough truck space on the road. Add trucks or make them bigger.'}
+  else if(fUtil>.9){t='Bottleneck: forklifts';sub='Flat out and still behind.'}
+  else{col='var(--acc)';t='Enough on paper, gaps in practice';sub='Capacity covers average demand, but random rushes and waiting for trucks to fill still empty shelves.'}
+  $('#vt').textContent=t;$('#vs').textContent=sub;$('#verdict').style.borderLeftColor=col}
+const sl={F:['sF','vF',v=>v],K:['sK','vK',v=>v],C:['sC','vC',v=>v],D:['sD','vD',v=>v+' / min'],S:['sS','vS',v=>v+'×']};
+for(const k in sl){const[a,b,f]=sl[k],el=$('#'+a),up=()=>{P[k]=+el.value;$('#'+b).textContent=f(P[k]);if(forks)sync()};el.addEventListener('input',up);up()}
+$('#pause').onclick=e=>{paused=!paused;e.target.textContent=paused?'Play':'Pause'};
+$('#reset').onclick=reset;
+reset();
+let last=performance.now(),acc=0,uiT=0;
+function frame(now){let dt=Math.min(.1,(now-last)/1000);last=now;
+  if(!paused){acc+=dt*P.S*1.5;let n=0;while(acc>.04&&n<60){step(.04);acc-=.04;n++}if(n===60)acc=0}
+  draw();uiT+=dt;if(uiT>.3){uiT=0;ui()}requestAnimationFrame(frame)}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
