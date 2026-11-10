@@ -25,7 +25,7 @@ button:disabled{opacity:.4}
 .bar button{flex:1;padding:8px 4px}
 .advice{background:#fff;border:1px solid var(--line);border-left:6px solid var(--good);border-radius:6px;font-weight:600;padding:9px 12px;font-size:14px;margin-bottom:8px;min-height:42px}
 .toast{font-size:13px;color:var(--dim);min-height:20px;margin-bottom:8px}
-.tabs{display:flex;gap:4px;margin-bottom:8px}.tabs button{flex:1;padding:8px 2px;font-family:var(--sign);font-size:17px;text-transform:uppercase;letter-spacing:.03em}
+.tabs{display:flex;gap:4px;margin-bottom:8px}.tabs button{flex:1;padding:8px 2px;font-family:var(--sign);font-size:15px;text-transform:uppercase;letter-spacing:.02em}
 .panel{background:var(--card);border:1px solid var(--line);border-top:4px solid #1d1f21;border-radius:6px;padding:14px}
 h3{margin:0 0 4px;font-family:var(--sign);font-size:19px;text-transform:uppercase;letter-spacing:.03em}h3:not(:first-child){margin-top:16px}
 p{margin:0 0 8px;color:var(--dim);font-size:14px}
@@ -48,6 +48,10 @@ td:last-child{text-align:right;color:var(--ink);font-variant-numeric:tabular-num
 .box .go{width:100%;margin-top:10px;font-size:16px}
 .tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;background:#1d1f21;color:#ffd200;margin-left:4px}
 a{color:var(--blue)}
+ul.cond,.box ul{list-style:none;padding:0;margin:4px 0 10px;font-size:14px;color:var(--ink)}ul.cond li,.box h3+ul li{padding:3px 0}
+.truck{border-top:1px solid var(--line);padding-bottom:8px}.truck .rowx{border:0;padding-bottom:4px}.trow{display:flex;gap:6px}.trow select{flex:1;min-width:0;font:inherit;padding:8px;border:1.5px solid #1d1f21;border-radius:6px;background:#fff;color:var(--ink);min-height:42px}.trow button{padding:8px 9px;font-size:13px}
+.bars{display:flex;align-items:flex-end;gap:3px;height:60px;margin:6px 0 8px}.bars i{flex:1;border-radius:2px 2px 0 0;max-width:22px}
+.box h3{font-family:var(--sign);text-transform:uppercase;font-size:19px;margin:0}
 </style>
 </head>
 <body>
@@ -65,7 +69,7 @@ a{color:var(--blue)}
     <div class="advice" id="advice">Good morning.</div>
     <div class="toast" id="toast"></div>
     <div class="tabs" id="tabs">
-      <button data-act="tab:team">Depot</button><button data-act="tab:fleet">Fleet</button><button data-act="tab:stores">Stores</button><button data-act="tab:ledger">Ledger</button>
+      <button data-act="tab:team">Depot</button><button data-act="tab:fleet">Fleet</button><button data-act="tab:stores">Stores</button><button data-act="tab:invest">Invest</button><button data-act="tab:ledger">Ledger</button>
     </div>
     <div class="panel" id="panel"></div>
     <p style="margin-top:12px;font-size:13px"><a href="./">← Back to the simple simulation</a></p>
@@ -76,37 +80,52 @@ a{color:var(--blue)}
 <script>
 const $=s=>document.querySelector(s),money=n=>(n<0?'−$':'$')+Math.abs(Math.round(n)).toLocaleString('en-AU');
 const W=360,H=570,DOOR_Y=150,HOLD_Y=260,OUT_Y=304,BACK_Y=320,RACK_Y=44,DOCK_X=[60,140,220,300],HOLD_X=[20,100,180,260,340];
-const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],KEY='palletflow-game-v1';
-const TYPES={van:{n:'Van',cap:4,lease:90,km:.35,kmh:55,len:30},rigid:{n:'Rigid',cap:10,lease:160,km:.75,kmh:50,len:44},semi:{n:'Semi',cap:22,lease:280,km:1.3,kmh:45,len:66}};
-const DEFS=[{n:'Corner Mart',x:180,y:356,km:6,dem:3,rate:40,cap:16},{n:'Greenfields',x:110,y:400,km:14,dem:4,rate:46,cap:20},{n:'Harbour St',x:250,y:430,km:24,dem:5,rate:52,cap:24},
-  {n:'Ridgeway',x:40,y:478,km:40,dem:6,rate:58,cap:30},{n:'Far Coast',x:320,y:512,km:65,dem:8,rate:72,cap:40}];
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],KEY='palletflow-game-v2';
+const FONT='"Avenir Next Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif';
+const TYPES={van:{n:'Van',cap:4,lease:90,km:.35,kmh:55,len:30,svc:250},rigid:{n:'Rigid',cap:10,lease:160,km:.75,kmh:50,len:44,svc:400},semi:{n:'Semi',cap:22,lease:280,km:1.3,kmh:45,len:66,svc:650},sup:{n:'Supplier',cap:26,len:66}};
+const DEFS=[{n:'Corner Mart',x:180,y:356,km:6,dem:3,rate:46,cap:16},{n:'Greenfields',x:110,y:400,km:14,dem:4,rate:52,cap:20},{n:'Harbour St',x:250,y:430,km:24,dem:5,rate:58,cap:24},
+  {n:'Ridgeway',x:40,y:478,km:40,dem:6,rate:64,cap:30},{n:'Far Coast',x:320,y:512,km:65,dem:8,rate:78,cap:40}];
 const PAY=[{n:'Budget',w:31,sp:.82},{n:'Standard',w:36,sp:1},{n:'Premium',w:43,sp:1.22}];
-const DRIVER=40,HIRE=300,DOCK=6000,OVER=450,OVER_DOCK=120,LOST=15,GOAL=100000;
-let G,S,speed=2,tab='team',modal=false;
+const UPS={lev:['Dock levellers',4000,'Forklifts work 40% quicker at the dock door.'],rack:['Extra racking',5000,'The depot holds 100 more pallets.'],route:['Route planning software',6000,'Every trip is 12% shorter: less time, less fuel.'],
+  train:['Driver training',3500,'Half as many breakdowns.'],back:['Store back rooms',8000,'Every store can hold 25% more stock.'],mess:['Break room and canteen',2500,'Crew morale recovers faster.']};
+const TIERS=[[25000,'Bronze'],[100000,'Silver'],[250000,'Gold']];
+const DRIVER=40,HIRE=300,DOCK=6000,OVER=450,OVER_DOCK=120,LOST=15,STOR=1.2,RUSH=250,LOAD=26,LOAN_STEP=5000,LOAN_MAX=20000,LOAN_RATE=.008;
+let G,S,speed=0,tab='team',modal=false;
 const expo=m=>-Math.log(1-Math.random())*m;
 const hourMul=c=>{const h=c/60;return h<9?.7:h<12?1:h<14?1.4:h<16?1:1.3};
-const rate=i=>DEFS[i].dem*hourMul(S.clock)*S.dayMul*(S.promo===i?1.8:1);
+const cap=i=>Math.round(DEFS[i].cap*(G.up.back?1.25:1)),whCap=()=>200+(G.up.rack?100:0),kmOf=i=>DEFS[i].km*(G.up.route?.88:1);
+const rate=i=>DEFS[i].dem*hourMul(S.clock)*S.dayMul*(G.cond.promo===i?1.8:1)*(G.cond.wx==='rain'?.9:G.cond.wx==='heat'?1.25:1);
+const mm=()=>.9+.2*G.morale/100;
 function charge(k,a){G.cash-=a;S.d[k]+=a}
 function say(m){$('#toast').textContent=m;S.log.unshift(clockStr()+' '+m);if(S.log.length>30)S.log.pop()}
 const clockStr=()=>{const c=Math.min(1080,S.clock);return String(Math.floor(c/60)).padStart(2,'0')+':'+String(Math.floor(c%60)).padStart(2,'0')};
 function save(){try{localStorage.setItem(KEY,JSON.stringify(G))}catch(e){}}
-function load(){try{const g=JSON.parse(localStorage.getItem(KEY));if(g&&g.stores&&g.stores.length===DEFS.length)return g}catch(e){}return null}
+function load(){try{const g=JSON.parse(localStorage.getItem(KEY));if(g&&g.stores&&g.stores.length===DEFS.length&&g.cond)return g}catch(e){}return null}
+const onStores=()=>G.stores.map((s,i)=>s.on?i:-1).filter(i=>i>=0);
+function genCond(prev){const r=Math.random(),on=onStores(),pick=()=>on[Math.floor(Math.random()*on.length)];
+  return{wx:r<.18?'rain':r<.26?'heat':'fine',promo:Math.random()<.3?pick():-1,road:Math.random()<.14?pick():-1,fuel:Math.max(.8,Math.min(1.4,prev.fuel+(Math.random()-.5)*.16))}}
+function condList(c,day){const a=[],dow=(day-1)%7;a.push(c.wx==='rain'?'🌧 Rain: trucks 25% slower, slightly fewer shoppers':c.wx==='heat'?'☀️ Heatwave: 25% more shoppers':'⛅ Fine weather');
+  if(dow>=5)a.push('🛒 Weekend: 35% more shoppers');if(c.promo>=0)a.push('📣 Promo at '+DEFS[c.promo].n+': demand up 80%');if(c.road>=0)a.push('🚧 Roadworks on the '+DEFS[c.road].n+' run: 40% longer');
+  a.push('⛽ Diesel $'+(1.85*c.fuel).toFixed(2)+'/L'+(c.fuel>1.15?' (dear)':c.fuel<.92?' (cheap)':''));return a}
 
-function newGame(){G={day:1,cash:8000,fk:2,pay:1,docks:2,fleet:['rigid'],minLoad:.5,stores:DEFS.map((d,i)=>({on:i<2,stock:Math.round(d.cap*.6),sat:70})),hist:[],won:false}}
+function newGame(){G={day:1,cash:8000,loan:0,fk:3,pay:1,morale:70,docks:2,fleet:[{id:1,type:'rigid',cond:100,route:-1}],nid:2,minLoad:.5,wh:120,order:90,up:{},
+  stores:DEFS.map((d,i)=>({on:i<2,stock:Math.round(d.cap*.6),sat:70})),hist:[],tier:0,cond:{wx:'fine',promo:-1,road:-1,fuel:1}}}
 function startDay(){const dow=(G.day-1)%7;
-  S={clock:360,over:false,docks:DOCK_X.map((x,i)=>({x,truck:null,on:i<G.docks})),holds:HOLD_X.map(x=>({x,truck:null})),forks:[],trucks:[],seq:0,tid:0,log:[],
-    d:{rev:0,wF:0,wD:0,fuel:0,lease:0,over:0,pen:0,repair:0,other:0,km:0,deliv:0,sold:0,lost:0},promo:-1,dayMul:dow>=5?1.35:1,fUtil:0};
+  S={clock:360,over:false,docks:DOCK_X.map((x,i)=>({x,truck:null,on:i<G.docks})),holds:HOLD_X.map(x=>({x,truck:null})),forks:[],trucks:[],seq:0,log:[],
+    d:{rev:0,wF:0,wD:0,fuel:0,lease:0,over:0,pen:0,repair:0,other:0,stor:0,int:0,det:0,km:0,deliv:0,sold:0,lost:0,recv:0},dayMul:dow>=5?1.35:1,fUtil:0,busyT:0,totT:0,ordered:0,slot:0,whRes:0,whIn:0,sick:0};
+  for(let i=0;i<G.fk;i++)if(G.morale<60&&Math.random()<(60-G.morale)/200)S.sick++;S.sick=Math.min(S.sick,G.fk-1);
   G.stores.forEach((s,i)=>{s.inbound=0;s.planned=0;s.flash=0;s.next=expo(60/rate(i))});
-  G.fleet.forEach(addTruck);syncForks();
-  charge('lease',G.fleet.reduce((a,t)=>a+TYPES[t].lease,0));charge('over',OVER+OVER_DOCK*G.docks);
-  const on=G.stores.map((s,i)=>s.on?i:-1).filter(i=>i>=0);
-  if(G.day>1&&Math.random()<.3){S.promo=on[Math.floor(Math.random()*on.length)];say('Promo at '+DEFS[S.promo].n+' today: expect much heavier demand.')}
-  else say(dow>=5?'Weekend: shoppers are out in force.':'Depot open. Trucks start at 6.');
+  G.fleet.forEach(o=>{if(o.route>=0&&!G.stores[o.route].on)o.route=-1;addTruck(o)});syncForks();
+  charge('lease',G.fleet.reduce((a,o)=>a+TYPES[o.type].lease,0));charge('over',OVER+OVER_DOCK*G.docks);if(G.loan)charge('int',G.loan*LOAN_RATE);
+  say(S.sick?S.sick+' operator'+(S.sick>1?'s':'')+' called in sick. Morale is low.':'Gates closed. Check today, then press a speed to open.');
   render()}
-function addTruck(type){const T=TYPES[type],h=S.holds.find(h=>!h.truck)||{x:HOLD_X[S.trucks.length%5],truck:null};
-  const t={id:++S.tid,type,T,x:h.x,y:HOLD_Y,a:Math.PI/2,da:Math.PI/2,state:'wait',path:[],loaded:0,reserved:0,qty:0,dock:null,hold:h,store:-1,timer:0,retire:false,sp:30,km:0};h.truck=t;S.trucks.push(t)}
-function syncForks(){while(S.forks.length<G.fk){const i=S.forks.length;S.forks.push({x:28+i*22,y:118,hx:28+i*22,a:-Math.PI/2,da:-Math.PI/2,state:'idle',path:[],truck:null,carry:false,timer:0})}
-  while(S.forks.length>G.fk){const f=S.forks.pop();if(f.truck)f.truck.reserved--}}
+function addTruck(o,qty){const T=TYPES[o.type],h=S.holds.find(h=>!h.truck)||{x:HOLD_X[S.trucks.length%5],truck:null};
+  const t={o,id:o.id,type:o.type,T,x:h.x,y:HOLD_Y,a:Math.PI/2,da:Math.PI/2,state:'wait',path:[],loaded:0,reserved:0,qty:0,dock:null,hold:h,store:-1,timer:0,retire:false,sp:30,km:0,site:0};h.truck=t;
+  if(o.type==='sup'){t.inb=true;t.loaded=qty;t.x=-40;t.y=BACK_Y;t.a=t.da=0;t.path=[[h.x,BACK_Y],[h.x,HOLD_Y]];t.state='back'}S.trucks.push(t)}
+function supplier(q){addTruck({id:'in',type:'sup'},q)}
+function dropJob(f){const t=f.truck;if(!t)return;if(f.job==='out'){if(f.carry){G.wh++;t.reserved--}else{t.reserved--;S.whRes--}}else{S.whIn--;if(f.carry)G.wh++;else t.reserved--}f.truck=null}
+function syncForks(){const n=Math.max(1,G.fk-S.sick);while(S.forks.length<n){const i=S.forks.length;S.forks.push({x:28+i*22,y:118,hx:28+i*22,a:-Math.PI/2,da:-Math.PI/2,state:'idle',path:[],truck:null,carry:false,timer:0})}
+  while(S.forks.length>n)dropJob(S.forks.pop())}
 
 /* ---------- simulation ---------- */
 function move(e,sp,dt){let d=sp*dt;while(d>0&&e.path.length){const p=e.path[0],dx=p[0]-e.x,dy=p[1]-e.y,L=Math.hypot(dx,dy);
@@ -114,55 +133,73 @@ function move(e,sp,dt){let d=sp*dt;while(d>0&&e.path.length){const p=e.path[0],d
     if(L<=d){e.x=p[0];e.y=p[1];d-=L;e.path.shift()}else{e.x+=dx/L*d;e.y+=dy/L*d;d=0}}
   let df=e.a-e.da;df=Math.atan2(Math.sin(df),Math.cos(df));e.da+=df*Math.min(1,dt*4);return!e.path.length}
 function pathLen(e){let L=0,x=e.x,y=e.y;for(const p of e.path){L+=Math.hypot(p[0]-x,p[1]-y);x=p[0];y=p[1]}return L}
-function pickStore(t){let best=-1,bq=0,bc=1e9;G.stores.forEach((s,i)=>{if(!s.on)return;const d=DEFS[i],have=s.stock+s.inbound+s.planned,q=Math.min(t.T.cap,d.cap-have);
-    if(q<=0||q<Math.min(G.minLoad*t.T.cap,d.cap*.7))return;const cover=have/rate(i);if(cover<bc){bc=cover;best=i;bq=q}});return best<0?null:[best,bq]}
-function leg(t,i,path){const d=DEFS[i];t.path=path;t.sp=pathLen(t)/(d.km*60/t.T.kmh);charge('fuel',d.km*t.T.km);S.d.km+=d.km;t.km+=d.km}
+function pickStore(t){let best=-1,bq=0,bc=1e9;G.stores.forEach((s,i)=>{if(!s.on||(t.o.route>=0&&t.o.route!==i))return;const c=cap(i),have=s.stock+s.inbound+s.planned,q=Math.min(t.T.cap,c-have);
+    if(q<=0||q<Math.min(G.minLoad*t.T.cap,c*.7))return;const cover=have/rate(i);if(cover<bc){bc=cover;best=i;bq=q}});return best<0?null:[best,bq]}
+function leg(t,i,path){const km=kmOf(i);t.path=path;t.sp=pathLen(t)/(km*60/t.T.kmh*(G.cond.wx==='rain'?1.25:1)*(G.cond.road===i?1.4:1));charge('fuel',km*t.T.km*G.cond.fuel);S.d.km+=km;t.km+=km;t.o.cond=Math.max(0,t.o.cond-km*.03)}
+const pri=t=>t.inb?(t.site>60||G.wh<30?0:2):1;
+function toHold(t){t.dock.truck=null;t.dock=null;const h=S.holds.find(h=>!h.truck)||{x:HOLD_X[0],truck:null};h.truck=t;t.hold=h;t.path=[[t.x,HOLD_Y],[h.x,HOLD_Y]];t.sp=30;t.state='back'}
+function refuse(t,why){if(t.dock){t.dock.truck=null;t.dock=null}if(t.hold){t.hold.truck=null;t.hold=null}charge('det',100);say('Supplier left with '+t.loaded+' pallets ('+why+'). $100 fee.');t.path=[[t.x,OUT_Y],[W+50,OUT_Y]];t.state='leave'}
 function step(dt){S.clock+=dt;
-  charge('wF',G.fk*PAY[G.pay].w/60*dt);charge('wD',S.trucks.length*DRIVER/60*dt);
+  charge('wF',S.forks.length*PAY[G.pay].w/60*dt);charge('wD',S.trucks.filter(t=>!t.inb).length*DRIVER/60*dt);
+  while(S.slot<16&&S.clock>=375+45*S.slot){S.slot++;const q=Math.min(LOAD,G.order-S.ordered);if(q>0){S.ordered+=q;supplier(q)}}
   G.stores.forEach((s,i)=>{if(!s.on)return;s.flash=Math.max(0,s.flash-dt/3);s.next-=dt;while(s.next<=0){s.next+=expo(60/rate(i));
       if(s.stock>0){s.stock--;S.d.sold++;s.sat=Math.min(100,s.sat+.1)}else{s.flash=1;S.d.lost++;s.sat=Math.max(0,s.sat-.8);charge('pen',LOST)}}});
-  for(const t of S.trucks){const T=t.T;
+  for(const t of S.trucks){const T=t.T;if(t.inb){t.site+=dt;if(t.site>120)charge('det',dt)}
     if(t.state==='wait'){if(t.retire){if(t.hold)t.hold.truck=null;t.dead=1;continue}
-      const d=S.docks.find(d=>d.on&&!d.truck);if(d){d.truck=t;t.dock=d;t.hold.truck=null;t.hold=null;t.path=[[d.x,HOLD_Y],[d.x,DOOR_Y+5+T.len/2,1]];t.state='dockIn'}}
+      if(t.svc){t.svc=false;t.state='service';t.timer=120;charge('repair',T.svc);t.o.cond=100;continue}
+      if(t.inb&&t.site>180){refuse(t,'gave up waiting');continue}
+      const ok=t.inb?G.wh+S.whIn<whCap():G.wh-S.whRes>0&&!(G.wh<40&&S.trucks.some(u=>u.inb&&u.state==='wait'));
+      const d=ok&&S.docks.find(d=>d.on&&!d.truck);if(d){d.truck=t;t.dock=d;t.hold.truck=null;t.hold=null;t.path=[[d.x,HOLD_Y],[d.x,DOOR_Y+5+T.len/2,1]];t.state='dockIn'}}
+    else if(t.state==='service'){t.timer-=dt;if(t.timer<=0){t.state='wait';say(T.n+' #'+t.id+' is back from the workshop.')}}
     else if(t.state==='dockIn'){if(move(t,30,dt)){t.state='loading';t.store=-1;t.seq=S.seq++}}
     else if(t.state==='loading'){
-      if(t.store<0){if(t.retire){t.dock.truck=null;t.dead=1;continue}
+      if(t.inb){if(t.loaded<=0&&!t.reserved){const dx=t.dock.x;t.dock.truck=null;t.dock=null;t.path=[[dx,OUT_Y],[W+50,OUT_Y]];t.state='leave'}
+        else if(!t.reserved&&G.wh+S.whIn>=whCap()){t.stall=(t.stall||0)+dt;if(t.stall>30)refuse(t,'racks full')}else t.stall=0}
+      else if(t.store<0){if(t.retire||t.svc){toHold(t);continue}
         const p=pickStore(t);if(p){t.store=p[0];t.qty=p[1];G.stores[p[0]].planned+=p[1]}}
-      else if(t.loaded>=t.qty&&!t.reserved){const s=G.stores[t.store],d=DEFS[t.store],dx=t.dock.x;s.planned-=t.qty;s.inbound+=t.loaded;t.dock.truck=null;t.dock=null;
-        leg(t,t.store,[[dx,OUT_Y],[d.x,OUT_Y],[d.x,d.y-6-T.len/2]]);t.state='out';t.breaks=Math.random()<d.km/1200}}
+      else if(!t.reserved&&(t.loaded>=t.qty||(G.wh-S.whRes<=0&&t.loaded>0))){const s=G.stores[t.store],d=DEFS[t.store],dx=t.dock.x;s.planned-=t.qty;s.inbound+=t.loaded;t.dock.truck=null;t.dock=null;
+        leg(t,t.store,[[dx,OUT_Y],[d.x,OUT_Y],[d.x,d.y-6-T.len/2]]);t.state='out';t.breaks=Math.random()<kmOf(t.store)/1200*(1+(100-t.o.cond)/25)*(G.up.train?.5:1)}
+      else if(!t.reserved&&!t.loaded&&G.wh-S.whRes<=0&&S.trucks.some(u=>u.inb&&u.state==='wait')){G.stores[t.store].planned-=t.qty;t.store=-1;toHold(t)}}
+    else if(t.state==='leave'){if(move(t,34,dt))t.dead=1}
     else if(t.state==='out'){if(move(t,t.sp,dt)){if(t.breaks){t.breaks=false;t.state='broken';t.timer=90;charge('repair',400);say(T.n+' #'+t.id+' broke down near '+DEFS[t.store].n+'. 90 min, $400 repair.')}else{t.state='unload';t.timer=.6}}}
     else if(t.state==='broken'){t.timer-=dt;if(t.timer<=0){t.state='unload';t.timer=.6}}
     else if(t.state==='unload'){const s=G.stores[t.store],d=DEFS[t.store];t.timer-=dt;while(t.timer<=0&&t.loaded>0){t.timer+=.6;t.loaded--;s.stock++;s.inbound--;S.d.deliv++;G.cash+=d.rate;S.d.rev+=d.rate}
-      if(!t.loaded){const h=S.holds.find(h=>!h.truck)||{x:HOLD_X[t.id%5],truck:null};h.truck=t;t.hold=h;leg(t,t.store,[[d.x,BACK_Y],[h.x,BACK_Y],[h.x,HOLD_Y]]);t.store=-1;t.state='back'}}
+      if(!t.loaded){const h=S.holds.find(h=>!h.truck)||{x:HOLD_X[S.seq%5],truck:null};h.truck=t;t.hold=h;leg(t,t.store,[[d.x,BACK_Y],[h.x,BACK_Y],[h.x,HOLD_Y]]);t.store=-1;t.state='back'}}
     else if(t.state==='back'){if(move(t,t.sp,dt))t.state='wait'}}
   S.trucks=S.trucks.filter(t=>!t.dead);
-  const P=PAY[G.pay];let busy=0;
+  const P=PAY[G.pay],v=55*P.sp*mm(),hr=1/P.sp/mm(),hd=hr*(G.up.lev?.6:1);let busy=0;
   for(const f of S.forks){
     if(f.state==='idle'||f.state==='home'){
-      const t=S.trucks.filter(t=>t.state==='loading'&&t.store>=0&&t.loaded+t.reserved<t.qty).sort((a,b)=>a.seq-b.seq)[0];
-      if(t){t.reserved++;f.truck=t;f.path=[[24+Math.random()*312,RACK_Y]];f.state='toRack'}
-      else if(f.state==='home'){if(move(f,50*P.sp,dt))f.state='idle'}}
-    if(f.state==='toRack'){if(move(f,50*P.sp,dt)){f.state='pick';f.timer=1/P.sp}}
-    else if(f.state==='pick'){f.timer-=dt;if(f.timer<=0){f.carry=true;f.path=[[f.truck.dock.x+Math.random()*10-5,DOOR_Y-4]];f.state='toDock'}}
-    else if(f.state==='toDock'){if(move(f,50*P.sp,dt)){f.state='place';f.timer=1/P.sp}}
-    else if(f.state==='place'){f.timer-=dt;if(f.timer<=0){f.carry=false;f.truck.loaded++;f.truck.reserved--;f.truck=null;f.path=[[f.hx,118]];f.state='home'}}
+      const t=S.trucks.filter(t=>t.state==='loading'&&(t.inb?t.loaded-t.reserved>0&&G.wh+S.whIn<whCap():t.store>=0&&t.loaded+t.reserved<t.qty&&G.wh-S.whRes>0)).sort((a,b)=>pri(a)-pri(b)||a.seq-b.seq)[0];
+      if(t){t.reserved++;f.truck=t;if(t.inb){S.whIn++;f.job='in';f.path=[[t.dock.x+Math.random()*10-5,DOOR_Y-4]];f.state='toDock'}else{S.whRes++;f.job='out';f.path=[[24+Math.random()*312,RACK_Y]];f.state='toRack'}}
+      else if(f.state==='home'){if(move(f,v,dt))f.state='idle'}}
+    if(f.state==='toRack'){if(move(f,v,dt)){f.state='atRack';f.timer=hr}}
+    else if(f.state==='atRack'){f.timer-=dt;if(f.timer<=0){if(f.job==='out'){G.wh--;S.whRes--;f.carry=true;f.path=[[f.truck.dock.x+Math.random()*10-5,DOOR_Y-4]];f.state='toDock'}
+        else{G.wh++;S.whIn--;S.d.recv++;f.carry=false;f.truck=null;f.path=[[f.hx,118]];f.state='home'}}}
+    else if(f.state==='toDock'){if(move(f,v,dt)){f.state='atDock';f.timer=hd}}
+    else if(f.state==='atDock'){f.timer-=dt;if(f.timer<=0){if(f.job==='out'){f.carry=false;f.truck.loaded++;f.truck.reserved--;f.truck=null;f.path=[[f.hx,118]];f.state='home'}
+        else{f.truck.loaded--;f.truck.reserved--;f.carry=true;f.path=[[24+Math.random()*312,RACK_Y]];f.state='toRack'}}}
     if(f.state!=='idle'&&f.state!=='home')busy++}
-  S.fUtil+=(busy/Math.max(1,S.forks.length)-S.fUtil)*Math.min(1,dt/40);
+  const u=busy/Math.max(1,S.forks.length);S.fUtil+=(u-S.fUtil)*Math.min(1,dt/40);S.busyT+=u*dt;S.totT+=dt;
   if(S.clock>=1080)endDay()}
-const costs=d=>d.wF+d.wD+d.fuel+d.lease+d.over+d.pen+d.repair+d.other;
+const costs=d=>d.wF+d.wD+d.fuel+d.lease+d.over+d.pen+d.repair+d.other+d.stor+d.int+d.det;
 const nextOffer=()=>G.stores.findIndex(s=>!s.on);
 
-function endDay(){S.over=true;const d=S.d,profit=d.rev-costs(d),avail=d.sold/Math.max(1,d.sold+d.lost);G.hist.push({day:G.day,profit,avail});
+function endDay(){S.over=true;charge('stor',G.wh*STOR);const d=S.d,profit=d.rev-costs(d),avail=d.sold/Math.max(1,d.sold+d.lost);G.hist.push({day:G.day,profit,avail,cash:G.cash-G.loan});
   let notes='';G.stores.forEach((s,i)=>{if(s.on&&s.sat<=0){s.on=false;s.sat=40;notes+=`<p class="neg"><b>${DEFS[i].n} cancelled its contract.</b> Shelves were empty too often.</p>`}});
+  const util=S.busyT/Math.max(1,S.totT),m0=G.morale;G.morale=Math.max(0,Math.min(100,G.morale+[-7,0,6][G.pay]+(util>.85?-6:util<.6?3:0)+(G.up.mess?4:0)+(60-G.morale)*.1));
+  notes+=`<p>Crew morale ${Math.round(m0)} → <b class="${G.morale<m0?'neg':'pos'}">${Math.round(G.morale)}</b>. Forklifts were busy ${(util*100).toFixed(0)}% of the day${util>.85?', which is wearing people down':''}.</p>`;
+  if(G.morale<15&&G.fk>1){G.fk--;notes+=`<p class="neg"><b>An operator quit.</b> Pay and workload matter.</p>`}
   const dead=G.cash<-5000||!G.stores.some(s=>s.on),off=nextOffer(),canOffer=!dead&&off>=0&&avail>=.9;
-  let win='';if(!dead&&!G.won&&G.cash>=GOAL){G.won=true;win=`<div class="offer"><b>🏆 ${money(GOAL)} in the bank.</b><p style="margin:4px 0 0">You've built a network that pays for itself. Keep going as long as you like.</p></div>`}
-  const row=(a,b,c)=>`<tr${c?' class="'+c+'"':''}><td>${a}</td><td>${b}</td></tr>`;
-  let h=`<h2>${dead?'The bank has pulled the plug':'Day '+G.day+' closed'}</h2><p>${dead?(G.cash<-5000?'You are more than $5,000 overdrawn.':'Every store has walked away.')+' You lasted '+G.day+' days.':'Shelves stocked '+(avail*100).toFixed(0)+'% of the time. '+d.deliv+' pallets delivered over '+Math.round(d.km)+' km.'}</p>
-  <table>${row('Delivery income',money(d.rev))}${row('Warehouse wages',money(-d.wF))}${row('Driver wages',money(-d.wD))}${row('Fuel and running ('+Math.round(d.km)+' km)',money(-d.fuel))}${row('Truck leases',money(-d.lease))}${row('Depot rent',money(-d.over))}${row('Empty-shelf penalties ('+d.lost+')',money(-d.pen))}${d.repair?row('Repairs',money(-d.repair)):''}${d.other?row('Hiring and building',money(-d.other)):''}
-  <tr class="tot"><td>Profit today</td><td class="${profit<0?'neg':'pos'}">${money(profit)}</td></tr>${row('Cash',money(G.cash))}${d.deliv?row('Cost per pallet delivered',money((costs(d)-d.other)/d.deliv)):''}</table>${notes}${win}`;
-  if(canOffer){const o=DEFS[off];h+=`<div class="offer" id="offer"><b>New contract offer: ${o.n}</b><p style="margin:4px 0 8px">${o.km} km away · about ${o.dem} pallets an hour · pays ${money(o.rate)} a pallet. You'll likely need more trucks and hands.</p><button class="pri" data-act="accept:${off}">Accept contract</button></div>`}
-  else if(!dead&&off>=0)h+=`<p style="margin-top:10px">Keep shelves stocked 90% of a day to be offered the next contract (${DEFS[off].n}).</p>`;
-  G.day++;if(dead){try{localStorage.removeItem(KEY)}catch(e){}h+=`<button class="pri go" data-act="new">Start again</button>`}else{save();h+=`<button class="pri go" data-act="next">Start day ${G.day}</button>`}
+  let win='';if(!dead&&G.tier<TIERS.length&&G.cash-G.loan>=TIERS[G.tier][0]){const t=TIERS[G.tier++];win=`<div class="offer"><b>🏆 ${t[1]} depot: ${money(t[0])} net worth.</b><p style="margin:4px 0 0">${G.tier<TIERS.length?'Next: '+TIERS[G.tier][1]+' at '+money(TIERS[G.tier][0])+'.':'Top tier. You run the region.'}</p></div>`}
+  const row=(a,b,c)=>`<tr${c?' class="'+c+'"':''}><td>${a}</td><td>${b}</td></tr>`,opt=(a,v)=>v?row(a,money(-v)):'';
+  let h=`<h2>${dead?'The bank has pulled the plug':'Day '+G.day+' closed'}</h2><p>${dead?(G.cash<-5000?'You are more than $5,000 overdrawn.':'Every store has walked away.')+' You lasted '+G.day+' days.':'Shelves stocked '+(avail*100).toFixed(0)+'% of the time. '+d.deliv+' pallets out over '+Math.round(d.km)+' km, '+d.recv+' pallets in.'}</p>
+  <table>${row('Delivery income',money(d.rev))}${row('Warehouse wages',money(-d.wF))}${row('Driver wages',money(-d.wD))}${row('Fuel and running ('+Math.round(d.km)+' km)',money(-d.fuel))}${row('Truck leases',money(-d.lease))}${row('Depot rent',money(-d.over))}${row('Overnight storage ('+G.wh+' pallets)',money(-d.stor))}${row('Empty-shelf penalties ('+d.lost+')',money(-d.pen))}${opt('Supplier waiting fees',d.det)}${opt('Repairs and servicing',d.repair)}${opt('Loan interest',d.int)}${opt('Investments and one-offs',d.other)}
+  <tr class="tot"><td>Profit today</td><td class="${profit<0?'neg':'pos'}">${money(profit)}</td></tr>${row('Cash',money(G.cash))}${G.loan?row('Loan owing',money(-G.loan)):''}${d.deliv?row('Cost per pallet delivered',money((costs(d)-d.other)/d.deliv)):''}</table>${notes}${win}`;
+  if(canOffer){const o=DEFS[off];h+=`<div class="offer" id="offer"><b>New contract offer: ${o.n}</b><p style="margin:4px 0 8px">${o.km} km away · about ${o.dem} pallets an hour · pays ${money(o.rate)} a pallet. You'll need more trucks, hands and inbound stock.</p><button class="pri" data-act="accept:${off}">Accept contract</button></div>`}
+  else if(!dead&&off>=0)h+=`<p>Keep shelves stocked 90% of a day to be offered the next contract (${DEFS[off].n}).</p>`;
+  G.day++;if(dead){try{localStorage.removeItem(KEY)}catch(e){}h+=`<button class="pri go" data-act="new">Start again</button>`}
+  else{G.cond=genCond(G.cond);h+=`<h3 style="margin-top:14px">Tomorrow's forecast</h3><ul>${condList(G.cond,G.day).map(x=>'<li>'+x+'</li>').join('')}</ul>`;save();h+=`<button class="pri go" data-act="next">Plan day ${G.day}</button>`}
   showModal(h)}
 function showModal(h){$('#mbox').innerHTML=h;$('#modal').classList.add('show');$('#modal').scrollTop=0;modal=true}
 function hideModal(){$('#modal').classList.remove('show');modal=false}
@@ -171,103 +208,118 @@ function hideModal(){$('#modal').classList.remove('show');modal=false}
 function rr(x,a,b,w,h,r){x.beginPath();x.roundRect(a,b,w,h,r);x.fill()}
 function pallet(x,a,b,s){x.fillStyle='#c79a5b';x.fillRect(a-s/2,b-s/2,s,s);x.strokeStyle='#7d5526';x.lineWidth=.5;x.strokeRect(a-s/2,b-s/2,s,s)}
 const SIGN=['#1f5fa8','#1e8e4e','#b3541e','#6a3fa0','#0f7c86'];
-function ground(x,roadTop,roadBot){x.fillStyle='#6d8a55';x.fillRect(0,0,W,H);x.fillStyle='#a9aaa5';x.fillRect(0,0,W,roadTop);x.fillStyle='#3d4045';x.fillRect(0,roadTop,W,roadBot-roadTop)}
-function roadLines(x,roadTop,roadBot){x.strokeStyle='#f2f2ee';x.lineWidth=1.2;x.setLineDash([9,8]);x.beginPath();x.moveTo(0,(roadTop+roadBot)/2);x.lineTo(W,(roadTop+roadBot)/2);x.stroke();x.setLineDash([]);
-  x.lineWidth=.8;x.globalAlpha=.7;x.beginPath();x.moveTo(0,roadTop+1.5);x.lineTo(W,roadTop+1.5);x.stroke();x.globalAlpha=1}
-function depot(x,label){x.fillStyle='rgba(0,0,0,.18)';x.fillRect(11,11,W-16,DOOR_Y-6);x.fillStyle='#dcd9d0';x.fillRect(8,8,W-16,DOOR_Y-6);x.strokeStyle='#4b4e52';x.lineWidth=3;x.strokeRect(8,8,W-16,DOOR_Y-6);
-  x.strokeStyle='#f5c400';x.lineWidth=1.5;x.setLineDash([10,6]);x.beginPath();x.moveTo(14,DOOR_Y-22);x.lineTo(W-14,DOOR_Y-22);x.stroke();x.setLineDash([]);
-  x.fillStyle='#2f5d9e';x.fillRect(20,13,W-40,22);x.fillStyle='#e8731c';x.fillRect(20,23.2,W-40,1.6);for(let i=0;i<26;i++){pallet(x,28+i*12.2,18.5,7);pallet(x,28+i*12.2,29.5,7)}
-  x.fillStyle='#4b4e52';x.font='700 10px '+FONT;x.textAlign='right';x.fillText(label,W-16,DOOR_Y-28);x.textAlign='left'}
-function door(x,dx,open,active){if(!open){x.strokeStyle='#8d8f8b';x.lineWidth=1;x.setLineDash([3,3]);x.strokeRect(dx-14,DOOR_Y+3,28,74);x.setLineDash([]);return}
-  x.strokeStyle='#f5c400';x.lineWidth=1.4;x.strokeRect(dx-14,DOOR_Y+3,28,74);x.fillStyle='#26282b';x.fillRect(dx-12,DOOR_Y-3,24,6);
-  x.fillStyle=active?'#27c267':'#c8281e';x.beginPath();x.arc(dx+17,DOOR_Y-7,2.4,0,7);x.fill()}
-function bay(x,hx,y,h){x.strokeStyle='#f2f2ee';x.lineWidth=1;x.setLineDash([4,4]);x.strokeRect(hx-14,y,28,h);x.setLineDash([]);x.fillStyle='rgba(242,242,238,.7)';x.font='700 8px '+FONT;x.fillText('P',hx-3,y+10)}
-function truckBody(x,L,cab,loaded,cap,broken){const tl=L-13;x.fillStyle='rgba(0,0,0,.28)';x.fillRect(-L/2+2,-8,L,20);
-  x.fillStyle=broken?'#f0c9c4':'#f7f7f4';rr(x,-L/2,-10,tl,20,2);x.strokeStyle='#55585c';x.lineWidth=.8;x.beginPath();x.roundRect(-L/2,-10,tl,20,2);x.stroke();
-  x.fillStyle=cab;rr(x,L/2-12,-9,12,18,3);x.fillStyle='#1d1f21';x.fillRect(L/2-5,-7,3,14);
-  const cols=Math.ceil(cap/2),sz=Math.min(8,(tl-3)/cols-.6);for(let i=0;i<loaded;i++)pallet(x,-L/2+2+sz/2+Math.floor(i/2)*(sz+.6),(i%2?4.5:-4.5),sz)}
-function forklift(x,f){x.save();x.translate(f.x,f.y);x.rotate(f.da);x.fillStyle='rgba(0,0,0,.25)';x.fillRect(-5,-3.5,10,9);x.fillStyle='#f5a300';rr(x,-6,-4.5,10,9,2);x.fillStyle='#1d1f21';x.fillRect(-3,-3,4,6);
-  x.strokeStyle='#33363a';x.lineWidth=1.2;x.beginPath();x.moveTo(4,-2.5);x.lineTo(10,-2.5);x.moveTo(4,2.5);x.lineTo(10,2.5);x.stroke();if(f.carry)pallet(x,9,0,7);x.restore()}
-function storeBox(x,bx,by,bw,bh,name,col,empty,promo){x.fillStyle='rgba(0,0,0,.22)';x.fillRect(bx+3,by+3,bw,bh);x.fillStyle='#f1eee6';x.fillRect(bx,by,bw,bh);
-  x.fillStyle=empty?'#c8281e':col;x.fillRect(bx,by,bw,13);x.strokeStyle=promo?'#ffd200':'#4b4e52';x.lineWidth=promo?2.5:1.2;x.strokeRect(bx,by,bw,bh);
-  x.fillStyle='#fff';x.font='700 9px '+FONT;x.fillText(name,bx+5,by+10)}
 function setup(){const c=$('#c'),r=c.getBoundingClientRect(),dp=Math.min(window.devicePixelRatio||1,2),cw=Math.round(r.width*dp),ch=Math.round(r.height*dp);
   if(c.width!==cw||c.height!==ch){c.width=cw;c.height=ch}const x=c.getContext('2d'),s=cw/W;x.setTransform(s,0,0,s,0,0);return x}
-const FONT='"Avenir Next Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif';
-function draw(){const x=setup();ground(x,OUT_Y-12,BACK_Y+12);
-  x.fillStyle='#3d4045';G.stores.forEach((st,i)=>{if(st.on)x.fillRect(DEFS[i].x-13,BACK_Y,26,DEFS[i].y-BACK_Y)});roadLines(x,OUT_Y-12,BACK_Y+12);
-  for(const h of S.holds)bay(x,h.x,HOLD_Y-36,70);
-  depot(x,'DEPOT');for(const d of S.docks)door(x,d.x,d.on,d.truck&&d.truck.state==='loading'&&d.truck.store>=0);
-  G.stores.forEach((st,i)=>{const d=DEFS[i],bx=d.x-33;if(!st.on){x.strokeStyle='#dfe8d4';x.globalAlpha=.6;x.lineWidth=1;x.setLineDash([4,4]);x.strokeRect(bx,d.y,66,42);x.setLineDash([]);x.fillStyle='#fff';x.font='8px '+FONT;x.fillText('NO CONTRACT',bx+10,d.y+24);x.globalAlpha=1;return}
-    const empty=st.stock===0;storeBox(x,bx,d.y,66,42,d.n,SIGN[i],empty,S.promo===i);
-    x.fillStyle='#5c6066';x.font='8px '+FONT;x.fillText(d.km+' km'+(S.promo===i?' · PROMO':''),bx+5,d.y+24);
-    x.fillStyle=empty?'#c8281e':'#1d1f21';x.textAlign='right';x.font='700 8.5px '+FONT;x.fillText(empty?'EMPTY':st.stock+'/'+d.cap,bx+61,d.y+24);x.textAlign='left';
-    x.fillStyle='#cfccc3';x.fillRect(bx+5,d.y+29,56,7);x.fillStyle=st.stock<d.cap*.25?'#f5a300':'#b9803f';x.fillRect(bx+5,d.y+29,56*Math.min(1,st.stock/d.cap),7);
+function draw(){const x=setup(),rt=OUT_Y-12,rb=BACK_Y+12,C=G.cond;
+  x.fillStyle=C.wx==='heat'?'#8a9455':'#6d8a55';x.fillRect(0,0,W,H);x.fillStyle='#a9aaa5';x.fillRect(0,0,W,rt);x.fillStyle='#3d4045';x.fillRect(0,rt,W,rb-rt);
+  G.stores.forEach((st,i)=>{if(st.on)x.fillRect(DEFS[i].x-13,BACK_Y,26,DEFS[i].y-BACK_Y)});
+  x.strokeStyle='#f2f2ee';x.lineWidth=1.2;x.setLineDash([9,8]);x.beginPath();x.moveTo(0,(rt+rb)/2);x.lineTo(W,(rt+rb)/2);x.stroke();x.setLineDash([]);
+  for(const h of S.holds){x.strokeStyle='#f2f2ee';x.lineWidth=1;x.setLineDash([4,4]);x.strokeRect(h.x-14,HOLD_Y-36,28,70);x.setLineDash([]);x.fillStyle='rgba(242,242,238,.7)';x.font='700 8px '+FONT;x.fillText('P',h.x-3,HOLD_Y-26)}
+  x.fillStyle='rgba(0,0,0,.18)';x.fillRect(11,11,W-16,DOOR_Y-6);x.fillStyle='#dcd9d0';x.fillRect(8,8,W-16,DOOR_Y-6);x.strokeStyle='#4b4e52';x.lineWidth=3;x.strokeRect(8,8,W-16,DOOR_Y-6);
+  x.strokeStyle='#f5c400';x.lineWidth=1.5;x.setLineDash([10,6]);x.beginPath();x.moveTo(14,DOOR_Y-22);x.lineTo(W-14,DOOR_Y-22);x.stroke();x.setLineDash([]);
+  x.fillStyle='#2f5d9e';x.fillRect(20,13,W-40,22);x.fillStyle='#e8731c';x.fillRect(20,23.2,W-40,1.6);const full=Math.round(52*Math.min(1,G.wh/whCap()));for(let i=0;i<full;i++)pallet(x,28+Math.floor(i/2)*12.2,i%2?29.5:18.5,7);
+  x.fillStyle=G.wh<15?'#c8281e':'#4b4e52';x.font='700 10px '+FONT;x.textAlign='right';x.fillText('DEPOT · '+G.wh+'/'+whCap()+' PALLETS',W-16,DOOR_Y-28);x.textAlign='left';
+  for(const d of S.docks){if(!d.on){x.strokeStyle='#8d8f8b';x.lineWidth=1;x.setLineDash([3,3]);x.strokeRect(d.x-14,DOOR_Y+3,28,74);x.setLineDash([]);continue}
+    x.strokeStyle='#f5c400';x.lineWidth=1.4;x.strokeRect(d.x-14,DOOR_Y+3,28,74);x.fillStyle='#26282b';x.fillRect(d.x-12,DOOR_Y-3,24,6);
+    const t=d.truck,act=t&&t.state==='loading'&&(t.inb||t.store>=0);x.fillStyle=act?'#27c267':'#c8281e';x.beginPath();x.arc(d.x+17,DOOR_Y-7,2.4,0,7);x.fill()}
+  G.stores.forEach((st,i)=>{const d=DEFS[i],bx=d.x-33,c=cap(i);if(!st.on){x.strokeStyle='#dfe8d4';x.globalAlpha=.6;x.lineWidth=1;x.setLineDash([4,4]);x.strokeRect(bx,d.y,66,42);x.setLineDash([]);x.fillStyle='#fff';x.font='8px '+FONT;x.fillText('NO CONTRACT',bx+10,d.y+24);x.globalAlpha=1;return}
+    const empty=st.stock===0,promo=C.promo===i;x.fillStyle='rgba(0,0,0,.22)';x.fillRect(bx+3,d.y+3,66,42);x.fillStyle='#f1eee6';x.fillRect(bx,d.y,66,42);x.fillStyle=empty?'#c8281e':SIGN[i];x.fillRect(bx,d.y,66,13);
+    x.strokeStyle=promo?'#ffd200':'#4b4e52';x.lineWidth=promo?2.5:1.2;x.strokeRect(bx,d.y,66,42);x.fillStyle='#fff';x.font='700 9px '+FONT;x.fillText(d.n,bx+5,d.y+10);
+    x.fillStyle='#5c6066';x.font='8px '+FONT;x.fillText(d.km+' km'+(promo?' · PROMO':''),bx+5,d.y+24);
+    x.fillStyle=empty?'#c8281e':'#1d1f21';x.textAlign='right';x.font='700 8.5px '+FONT;x.fillText(empty?'EMPTY':st.stock+'/'+c,bx+61,d.y+24);x.textAlign='left';
+    x.fillStyle='#cfccc3';x.fillRect(bx+5,d.y+29,56,7);x.fillStyle=st.stock<c*.25?'#f5a300':'#b9803f';x.fillRect(bx+5,d.y+29,56*Math.min(1,st.stock/c),7);
+    if(C.road===i){const my=(BACK_Y+d.y)/2+4;x.fillStyle='#f57c00';x.beginPath();x.moveTo(d.x,my-7);x.lineTo(d.x+7,my+5);x.lineTo(d.x-7,my+5);x.closePath();x.fill();x.fillStyle='#1d1f21';x.font='700 8px '+FONT;x.fillText('!',d.x-1.5,my+3.5)}
     if(st.flash>0){x.globalAlpha=st.flash;x.fillStyle='#c8281e';x.beginPath();x.arc(bx+66,d.y,7,0,7);x.fill();x.fillStyle='#fff';x.font='700 9px '+FONT;x.fillText('✕',bx+62.5,d.y+3);x.globalAlpha=1}});
-  for(const t of S.trucks){x.save();x.translate(t.x,t.y);x.rotate(t.da);x.globalAlpha=t.retire?.5:1;truckBody(x,t.T.len,t.type==='semi'?'#c8281e':t.type==='van'?'#f5c400':'#1f5fa8',t.loaded,t.T.cap,t.state==='broken');x.restore();
-    if(t.state==='broken'){x.fillStyle='#c8281e';x.font='700 11px '+FONT;x.fillText('⚠',t.x+13,t.y+3)}}
-  for(const f of S.forks)forklift(x,f)}
+  for(const t of S.trucks){const L=t.T.len,tl=L-13;x.save();x.translate(t.x,t.y);x.rotate(t.da);x.globalAlpha=t.retire?.5:1;x.fillStyle='rgba(0,0,0,.28)';x.fillRect(-L/2+2,-8,L,20);
+    x.fillStyle=t.state==='broken'?'#f0c9c4':t.inb?'#d6d9c8':'#f7f7f4';rr(x,-L/2,-10,tl,20,2);x.strokeStyle='#55585c';x.lineWidth=.8;x.beginPath();x.roundRect(-L/2,-10,tl,20,2);x.stroke();
+    x.fillStyle=t.inb?'#5c6066':t.type==='semi'?'#c8281e':t.type==='van'?'#f5c400':'#1f5fa8';rr(x,L/2-12,-9,12,18,3);x.fillStyle='#1d1f21';x.fillRect(L/2-5,-7,3,14);
+    const cols=Math.ceil(t.T.cap/2),sz=Math.min(8,(tl-3)/cols-.6);for(let i=0;i<t.loaded;i++)pallet(x,-L/2+2+sz/2+Math.floor(i/2)*(sz+.6),(i%2?4.5:-4.5),sz);x.restore();
+    if(t.state==='broken'||t.state==='service'){x.fillStyle=t.state==='broken'?'#c8281e':'#1d1f21';x.font='700 8px '+FONT;x.fillText(t.state==='broken'?'⚠':'SERVICE',t.x+13,t.y+3)}}
+  for(const f of S.forks){x.save();x.translate(f.x,f.y);x.rotate(f.da);x.fillStyle='rgba(0,0,0,.25)';x.fillRect(-5,-3.5,10,9);x.fillStyle='#f5a300';rr(x,-6,-4.5,10,9,2);x.fillStyle='#1d1f21';x.fillRect(-3,-3,4,6);
+    x.strokeStyle='#33363a';x.lineWidth=1.2;x.beginPath();x.moveTo(4,-2.5);x.lineTo(10,-2.5);x.moveTo(4,2.5);x.lineTo(10,2.5);x.stroke();if(f.carry)pallet(x,9,0,7);x.restore()}
+  if(C.wx==='rain'){x.strokeStyle='rgba(200,225,255,.45)';x.lineWidth=.8;x.beginPath();for(let i=0;i<70;i++){const a=Math.random()*W,b=Math.random()*H;x.moveTo(a,b);x.lineTo(a-3,b+8)}x.stroke();x.fillStyle='rgba(30,50,80,.12)';x.fillRect(0,0,W,H)}}
 
 /* ---------- interface ---------- */
-function tStatus(t){const s=t.store>=0?DEFS[t.store].n:'';return t.retire?'Being returned':{wait:'Waiting for a dock',dockIn:'Backing in',loading:t.store<0?'At dock, no store needs a load yet':`Loading for ${s} ${t.loaded}/${t.qty}`,out:'Driving to '+s,broken:'Broken down',unload:'Unloading at '+s,back:'Heading back'}[t.state]}
-function advice(){const empty=G.stores.some(s=>s.on&&s.stock===0),wait=S.trucks.filter(t=>t.state==='wait').length,atDepot=S.trucks.filter(t=>t.state==='wait'||t.state==='loading'||t.state==='dockIn').length,
-  idleDock=S.trucks.some(t=>t.state==='loading'&&t.store<0);let m,c='var(--good)';
-  if(empty&&S.fUtil>.88&&atDepot){m='Forklifts are flat out and shelves are empty. Hire an operator or raise pay.';c='var(--bad)'}
+function tStatus(t){const s=t.store>=0?DEFS[t.store].n:'';return t.retire?'Being returned':t.svc?'Booked for service when free':{wait:'Waiting for a dock',service:'In the workshop',dockIn:'Backing in',loading:t.store<0?'At dock, nothing to load yet':`Loading for ${s} ${t.loaded}/${t.qty}`,out:'Driving to '+s,broken:'Broken down',unload:'Unloading at '+s,back:'Heading back'}[t.state]}
+function advice(){const own=S.trucks.filter(t=>!t.inb),empty=G.stores.some(s=>s.on&&s.stock===0),wait=S.trucks.filter(t=>t.state==='wait').length,atDepot=own.filter(t=>t.state==='wait'||t.state==='loading'||t.state==='dockIn').length,
+  idleDock=S.trucks.some(t=>t.state==='loading'&&!t.inb&&t.store<0),late=S.trucks.some(t=>t.inb&&t.site>120);let m,c='var(--good)';
+  if(!speed&&S.clock<=360.1){m='Gates closed. Check today\'s conditions and your inbound order, then press a speed.';c='#1d1f21'}
+  else if(!speed){m='Paused.';c='#1d1f21'}
+  else if(G.wh-S.whRes<=0&&own.some(t=>t.state==='loading'&&t.store>=0)){m='The depot is out of stock. Trucks can\'t be loaded. Order more inbound or rush a load.';c='var(--bad)'}
+  else if(late){m='A supplier truck has been kept over 2 hours. That costs $60 an hour, and after 3 hours it leaves.';c='var(--bad)'}
+  else if(G.wh+S.whIn>=whCap()&&S.trucks.some(t=>t.inb)){m='The racks are full. Inbound stock can\'t be unloaded.';c='#f5a300'}
+  else if(empty&&S.fUtil>.88&&atDepot){m='Forklifts are flat out and shelves are empty. Hire, raise pay or fit dock levellers.';c='var(--bad)'}
   else if(empty&&!atDepot){m='Shelves are empty and every truck is on the road. You need more truck capacity.';c='var(--bad)'}
   else if(empty&&wait&&!idleDock){m='Trucks are queuing for a dock while shelves sit empty.';c='var(--bad)'}
   else if(empty){m='A store has run out. Each empty-shelf sale costs '+money(LOST)+' and goodwill.';c='var(--bad)'}
-  else if(S.fUtil<.3&&G.fk>1&&S.clock>480){m='Operators are standing around. Idle hands still get paid.';c='#f5a300'}
+  else if(S.fUtil<.3&&S.forks.length>1&&S.clock>480){m='Operators are standing around. Idle hands still get paid.';c='#f5a300'}
   else m='Running smoothly.';
   $('#advice').textContent=m;$('#advice').style.borderLeftColor=c}
 const seg=(act,opts,cur)=>`<div class="seg">${opts.map(o=>`<button data-act="${act}:${o[0]}" class="${o[0]===cur?'on':''}">${o[1]}</button>`).join('')}</div>`;
 function render(){document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.act==='tab:'+tab));
   document.querySelectorAll('#speed button').forEach(b=>b.classList.toggle('on',b.dataset.act==='speed:'+speed));
   let h='';
-  if(tab==='team'){h=`<h3>Forklift operators</h3><p>Each loads about ${(7.5*PAY[G.pay].sp).toFixed(0)} pallets an hour. Paid all day, busy or not.</p>
-    <div class="rowx"><div class="t"><b>${G.fk} on shift</b><span>Busy <span data-v="futil"></span> of the time</span></div><div style="display:flex;gap:6px"><button data-act="fire" ${G.fk<=1?'disabled':''}>−</button><button data-act="hire" ${G.fk>=8?'disabled':''}>Hire ${money(HIRE)}</button></div></div>
+  if(tab==='team'){h=`<h3>Today</h3><ul class="cond">${condList(G.cond,G.day0).map(x=>'<li>'+x+'</li>').join('')}</ul>
+    <h3>Stock in the depot</h3><div class="rowx"><div class="t"><b><span data-v="wh"></span> pallets</b><span>Storage costs $${STOR.toFixed(2)} a pallet each night</span></div><div class="meter"><i data-w="whp"></i></div></div>
+    <div class="rowx"><div class="t"><b>Inbound order: ${G.order} a day</b><span>Arrives in loads of ${LOAD} from 6:15, every 45 min. <span data-v="ord"></span> sent so far today.</span></div><div style="display:flex;gap:6px"><button data-act="ord:-10" ${G.order<=0?'disabled':''}>−</button><button data-act="ord:10" ${G.order>=400?'disabled':''}>+</button></div></div>
+    <div class="rowx"><div class="t"><b>Rush load</b><span>${LOAD} pallets on the way right now</span></div><button data-act="rush">Order ${money(RUSH)}</button></div>
+    <h3>Forklift operators</h3><p>Each moves about ${(7.5*PAY[G.pay].sp*mm()).toFixed(0)} pallets an hour, in or out. Paid all day, busy or not.</p>
+    <div class="rowx"><div class="t"><b>${G.fk} employed${S.sick?', '+S.sick+' off sick':''}</b><span>Busy <span data-v="futil"></span> of the time</span></div><div style="display:flex;gap:6px"><button data-act="fire" ${G.fk<=1?'disabled':''}>−</button><button data-act="hire" ${G.fk>=8?'disabled':''}>Hire ${money(HIRE)}</button></div></div>
+    <div class="rowx"><div class="t"><b>Morale ${Math.round(G.morale)}</b><span>${G.morale<40?'Low: expect sick days and slow work':G.morale>75?'High: the crew works faster':'Steady'}. Moves overnight with pay and workload.</span></div><div class="meter"><i style="width:${G.morale}%;background:${G.morale>60?'var(--good)':G.morale>35?'#f5a300':'var(--bad)'}"></i></div></div>
     <h3>Warehouse pay</h3>${seg('pay',PAY.map((p,i)=>[i,`${p.n}<small>$${p.w}/h · ${p.sp<1?'slower':p.sp>1?'faster':'normal'}</small>`]),G.pay)}
-    <h3>Loading docks</h3><div class="rowx"><div class="t"><b>${G.docks} of 4 open</b><span>Each adds ${money(OVER_DOCK)} a day in rent</span></div><button data-act="dock" ${G.docks>=4?'disabled':''}>Build ${money(DOCK)}</button></div>
-    <h3>Wage bill</h3><p>${money(G.fk*PAY[G.pay].w+G.fleet.length*DRIVER)} an hour (${G.fk} operators, ${G.fleet.length} driver${G.fleet.length>1?'s':''} at $${DRIVER}/h).</p>`}
+    <h3>Loading docks</h3><div class="rowx"><div class="t"><b>${G.docks} of 4 open</b><span>Shared by your trucks and suppliers. ${money(OVER_DOCK)} a day each.</span></div><button data-act="dock" ${G.docks>=4?'disabled':''}>Build ${money(DOCK)}</button></div>`}
   else if(tab==='fleet'){h=`<h3>Send a truck when it can carry at least</h3>${seg('min',[[.25,'¼ load'],[.5,'½ load'],[.75,'¾ load'],[1,'Full']],G.minLoad)}
     <p style="margin-top:6px">Small loads keep shelves full but burn kilometres. Full loads are cheap per pallet but stores wait.</p><h3>Your trucks</h3>`+
-    (S.trucks.map(t=>`<div class="rowx"><div class="t"><b>${t.T.n} #${t.id}</b><span data-v="t${t.id}"></span></div><button data-act="ret:${t.id}" ${t.retire||G.fleet.length<=1?'disabled':''}>Return</button></div>`).join('')||'<p>None.</p>')+
-    `<h3>Lease another</h3><p>Lease is charged per day, starting now. Each truck comes with a driver at $${DRIVER}/h.</p>`+
-    Object.entries(TYPES).map(([k,T])=>`<div class="rowx"><div class="t"><b>${T.n} · ${T.cap} pallets</b><span>${money(T.lease)}/day · $${T.km.toFixed(2)}/km · ${T.kmh} km/h</span></div><button data-act="lease:${k}" ${G.fleet.length>=8?'disabled':''}>Lease</button></div>`).join('')}
-  else if(tab==='stores'){h='<h3>Contracts</h3>'+G.stores.map((s,i)=>{const d=DEFS[i];return s.on?`<div class="rowx"><div class="t"><b>${d.n}${S.promo===i?'<span class="tag">PROMO</span>':''}</b><span>${d.km} km · ${money(d.rate)}/pallet · wants <span data-v="r${i}"></span>/h<br>Stock <span data-v="s${i}"></span> · Goodwill <span data-v="g${i}"></span></span></div><div class="meter"><i data-w="g${i}"></i></div></div>`:''}).join('');
+    S.trucks.filter(t=>!t.inb).map(t=>`<div class="truck"><div class="rowx"><div class="t"><b>${t.T.n} #${t.id}</b><span data-v="t${t.id}"></span></div><div class="meter" style="width:70px"><i data-w="c${t.id}"></i></div></div>
+      <div class="trow"><select data-chg="route:${t.id}"><option value="-1">Any store</option>${onStores().map(i=>`<option value="${i}" ${t.o.route===i?'selected':''}>Only ${DEFS[i].n}</option>`).join('')}</select>
+      <button data-act="svc:${t.id}" ${t.svc||t.state==='service'?'disabled':''}>Service ${money(t.T.svc)}</button><button data-act="ret:${t.id}" ${t.retire||G.fleet.length<=1?'disabled':''}>Return</button></div></div>`).join('')+
+    `<p style="margin-top:8px">Condition wears down with every kilometre. Worn trucks break down far more often. A service takes 2 hours.</p><h3>Lease another</h3><p>Charged per day, starting now. Each comes with a driver at $${DRIVER}/h.</p>`+
+    ['van','rigid','semi'].map(k=>{const T=TYPES[k];return`<div class="rowx"><div class="t"><b>${T.n} · ${T.cap} pallets</b><span>${money(T.lease)}/day · $${(T.km*G.cond.fuel).toFixed(2)}/km today · ${T.kmh} km/h</span></div><button data-act="lease:${k}" ${G.fleet.length>=8?'disabled':''}>Lease</button></div>`}).join('')}
+  else if(tab==='stores'){h='<h3>Contracts</h3>'+G.stores.map((s,i)=>{const d=DEFS[i];return s.on?`<div class="rowx"><div class="t"><b>${d.n}${G.cond.promo===i?'<span class="tag">PROMO</span>':''}${G.cond.road===i?'<span class="tag">ROADWORKS</span>':''}</b><span>${d.km} km · ${money(d.rate)}/pallet · wants <span data-v="r${i}"></span>/h<br>Stock <span data-v="s${i}"></span> · Goodwill <span data-v="g${i}"></span></span></div><div class="meter"><i data-w="g${i}"></i></div></div>`:''}).join('');
     const o=nextOffer();h+=o>=0?`<p style="margin-top:10px">Next contract: <b style="color:var(--ink)">${DEFS[o].n}</b>, ${DEFS[o].km} km, ${money(DEFS[o].rate)}/pallet. Offered after a day with shelves stocked 90%+.</p>`:'<p style="margin-top:10px">You hold every contract in the region.</p>';
     h+=`<p>Goodwill rises with every sale and drops with every empty-shelf visit. At zero, the store cancels.</p>`}
-  else{h=`<h3>Today so far</h3><table><tr><td>Delivery income</td><td data-v="lrev"></td></tr><tr><td>Wages</td><td data-v="lwage"></td></tr><tr><td>Fuel and running</td><td data-v="lfuel"></td></tr><tr><td>Leases and rent</td><td data-v="lfix"></td></tr><tr><td>Penalties and repairs</td><td data-v="lpen"></td></tr>
-    <tr class="tot"><td>Profit</td><td data-v="lprof"></td></tr><tr><td>Kilometres driven</td><td data-v="lkm"></td></tr><tr><td>Pallets delivered</td><td data-v="ldel"></td></tr><tr><td>Cost per pallet</td><td data-v="lcpp"></td></tr><tr><td>Shelves stocked</td><td data-v="lav"></td></tr></table>
-    <h3>Past days</h3>`+(G.hist.length?'<table>'+G.hist.slice(-7).reverse().map(x=>`<tr><td>Day ${x.day} · ${(x.avail*100).toFixed(0)}% stocked</td><td class="${x.profit<0?'neg':'pos'}">${money(x.profit)}</td></tr>`).join('')+'</table>':'<p>Nothing yet.</p>')+
-    `<h3>Goal</h3><p>Reach ${money(GOAL)} cash. Go more than $5,000 overdrawn at close and the bank shuts you down.</p><h3>Log</h3><p data-v="log" style="white-space:pre-line"></p><button data-act="restart" style="margin-top:6px">Start a new game</button>`}
+  else if(tab==='invest'){h='<h3>Upgrades</h3>'+Object.entries(UPS).map(([k,u])=>`<div class="rowx"><div class="t"><b>${u[0]}</b><span>${u[2]}</span></div><button data-act="up:${k}" ${G.up[k]||G.cash<u[1]?'disabled':''}>${G.up[k]?'Owned':money(u[1])}</button></div>`).join('')+
+    `<h3>Bank loan</h3><div class="rowx"><div class="t"><b>Owing ${money(G.loan)}</b><span>${(LOAN_RATE*100).toFixed(1)}% interest a day (${money(G.loan*LOAN_RATE)} tomorrow). Limit ${money(LOAN_MAX)}.</span></div><div style="display:flex;gap:6px"><button data-act="repay" ${G.loan<=0||G.cash<LOAN_STEP?'disabled':''}>Repay</button><button data-act="borrow" ${G.loan>=LOAN_MAX?'disabled':''}>+${money(LOAN_STEP)}</button></div></div>
+    <h3>Standing</h3><p>${TIERS.map((t,i)=>`${i<G.tier?'✅':'⬜'} ${t[1]}: ${money(t[0])} net worth`).join('<br>')}</p><p>Net worth is cash minus what you owe: <b style="color:var(--ink)">${money(G.cash-G.loan)}</b>.</p>`}
+  else{const mx=Math.max(1,...G.hist.slice(-14).map(x=>Math.abs(x.profit)));h=`<h3>Today so far</h3><table><tr><td>Delivery income</td><td data-v="lrev"></td></tr><tr><td>Wages</td><td data-v="lwage"></td></tr><tr><td>Fuel and running</td><td data-v="lfuel"></td></tr><tr><td>Leases, rent, interest</td><td data-v="lfix"></td></tr><tr><td>Penalties, fees, repairs</td><td data-v="lpen"></td></tr><tr><td>Investments and one-offs</td><td data-v="loth"></td></tr>
+    <tr class="tot"><td>Profit</td><td data-v="lprof"></td></tr><tr><td>Kilometres driven</td><td data-v="lkm"></td></tr><tr><td>Pallets out / in</td><td data-v="ldel"></td></tr><tr><td>Cost per pallet</td><td data-v="lcpp"></td></tr><tr><td>Shelves stocked</td><td data-v="lav"></td></tr></table>
+    <h3>Profit by day</h3>`+(G.hist.length?`<div class="bars">${G.hist.slice(-14).map(x=>`<i title="Day ${x.day}" style="height:${Math.max(4,Math.abs(x.profit)/mx*100)}%;background:${x.profit<0?'var(--bad)':'var(--good)'}"></i>`).join('')}</div><table>`+G.hist.slice(-5).reverse().map(x=>`<tr><td>Day ${x.day} · ${(x.avail*100).toFixed(0)}% stocked</td><td class="${x.profit<0?'neg':'pos'}">${money(x.profit)}</td></tr>`).join('')+'</table>':'<p>Nothing yet.</p>')+
+    `<h3>Log</h3><p data-v="log" style="white-space:pre-line"></p><button data-act="restart" style="margin-top:6px">Start a new game</button>`}
   $('#panel').innerHTML=h;live()}
-function live(){const d=S.d,pr=d.rev-costs(d),v={futil:(S.fUtil*100).toFixed(0)+'%',lrev:money(d.rev),lwage:money(-d.wF-d.wD),lfuel:money(-d.fuel),lfix:money(-d.lease-d.over),lpen:money(-d.pen-d.repair),lprof:money(pr),lkm:Math.round(d.km)+' km',ldel:d.deliv,
+function live(){const d=S.d,pr=d.rev-costs(d),v={futil:(S.fUtil*100).toFixed(0)+'%',wh:G.wh+' of '+whCap(),whp:G.wh/whCap()*100,ord:Math.min(S.ordered,9999),lrev:money(d.rev),lwage:money(-d.wF-d.wD),lfuel:money(-d.fuel),lfix:money(-d.lease-d.over-d.int),lpen:money(-d.pen-d.repair-d.det),loth:money(-d.other),lprof:money(pr),lkm:Math.round(d.km)+' km',ldel:d.deliv+' / '+d.recv,
     lcpp:d.deliv?money((costs(d)-d.other)/d.deliv):'–',lav:(d.sold/Math.max(1,d.sold+d.lost)*100).toFixed(0)+'%',log:S.log.slice(0,8).join('\n')};
-  S.trucks.forEach(t=>v['t'+t.id]=tStatus(t)+' · '+Math.round(t.km)+' km today');
-  G.stores.forEach((s,i)=>{if(s.on){v['r'+i]=rate(i).toFixed(1);v['s'+i]=s.stock+'/'+DEFS[i].cap;v['g'+i]=Math.round(s.sat)}});
+  S.trucks.forEach(t=>{if(!t.inb){v['t'+t.id]=tStatus(t)+' · '+Math.round(t.km)+' km today · condition '+Math.round(t.o.cond)+'%';v['c'+t.id]=t.o.cond}});
+  G.stores.forEach((s,i)=>{if(s.on){v['r'+i]=rate(i).toFixed(1);v['s'+i]=s.stock+'/'+cap(i);v['g'+i]=Math.round(s.sat)}});
   document.querySelectorAll('[data-v]').forEach(e=>{const t=v[e.dataset.v];if(t!==undefined&&e.textContent!==String(t))e.textContent=t});
   document.querySelectorAll('[data-w]').forEach(e=>{const g=+v[e.dataset.w];e.style.width=g+'%';e.style.background=g>60?'var(--good)':g>30?'#f5a300':'var(--bad)'});
   $('#hDay').textContent='Day '+G.day0+' · '+DAYS[(G.day0-1)%7];$('#hTime').textContent=clockStr();$('#hCash').textContent=money(G.cash);$('#hCash').className=G.cash<0?'neg':'';
   $('#hToday').textContent=(pr>0?'+':'')+money(pr);$('#hToday').className=pr<0?'neg':'pos';advice()}
+document.addEventListener('change',e=>{const el=e.target.closest('[data-chg]');if(!el)return;const id=+el.dataset.chg.split(':')[1],o=G.fleet.find(o=>o.id===id);if(o)o.route=+el.value});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const[a,p]=b.dataset.act.split(':');
   if(a==='tab')tab=p;else if(a==='speed')speed=+p;
   else if(a==='hire'){G.fk++;charge('other',HIRE);syncForks()}else if(a==='fire'){G.fk--;syncForks()}
   else if(a==='pay')G.pay=+p;else if(a==='min')G.minLoad=+p;
+  else if(a==='ord')G.order=Math.max(0,Math.min(400,G.order+ +p));
+  else if(a==='rush'){charge('other',RUSH);supplier(LOAD);say('Rush load of '+LOAD+' pallets is on its way.')}
   else if(a==='dock'){if(G.cash<DOCK){say('Not enough cash to build a dock.');return}S.docks[G.docks].on=true;G.docks++;charge('other',DOCK);say('New dock open.')}
-  else if(a==='lease'){G.fleet.push(p);addTruck(p);charge('lease',TYPES[p].lease);say(TYPES[p].n+' leased.')}
-  else if(a==='ret'){const t=S.trucks.find(t=>t.id==p);if(t){t.retire=true;G.fleet.splice(G.fleet.indexOf(t.type),1)}}
-  else if(a==='accept'){G.stores[p].on=true;G.stores[p].stock=Math.round(DEFS[p].cap*.5);G.stores[p].sat=70;save();$('#offer').innerHTML='<b class="pos">Contract signed: '+DEFS[p].n+'</b>';return}
+  else if(a==='lease'){const o={id:G.nid++,type:p,cond:100,route:-1};G.fleet.push(o);addTruck(o);charge('lease',TYPES[p].lease);say(TYPES[p].n+' #'+o.id+' leased.')}
+  else if(a==='ret'){const t=S.trucks.find(t=>t.id==p);if(t){t.retire=true;G.fleet=G.fleet.filter(o=>o.id!=p)}}
+  else if(a==='svc'){const t=S.trucks.find(t=>t.id==p);if(t){t.svc=true;say(t.T.n+' #'+t.id+' booked for a service.')}}
+  else if(a==='up'){const u=UPS[p];if(G.cash<u[1])return;G.up[p]=true;charge('other',u[1]);if(p==='mess')G.morale=Math.min(100,G.morale+10);say(u[0]+' installed.')}
+  else if(a==='borrow'){G.loan+=LOAN_STEP;G.cash+=LOAN_STEP;say('Borrowed '+money(LOAN_STEP)+'.')}
+  else if(a==='repay'){G.loan-=LOAN_STEP;G.cash-=LOAN_STEP;say('Repaid '+money(LOAN_STEP)+'.')}
+  else if(a==='accept'){G.stores[p].on=true;G.stores[p].stock=Math.round(DEFS[p].cap*.5);G.stores[p].sat=70;G.order=Math.min(400,G.order+Math.round(DEFS[p].dem*13/10)*10);save();$('#offer').innerHTML='<b class="pos">Contract signed: '+DEFS[p].n+'.</b><p style="margin:4px 0 0">Inbound order raised to '+G.order+' a day to cover it.</p>';return}
   else if(a==='next'){hideModal();begin()}
   else if(a==='new'){newGame();hideModal();begin()}
   else if(a==='restart'){if(confirm('Start a new game? Your current depot will be lost.')){newGame();begin()}}
   else if(a==='continue'){hideModal()}
   render()});
-function begin(){G.day0=G.day;startDay()}
+function begin(){G.day0=G.day;speed=0;startDay()}
 
 G=load();const resumed=!!G;if(!G)newGame();begin();
-showModal(`<h2>Pallet Flow: Depot Manager</h2><p>You run a depot. Stores pay you for every pallet you deliver, and fine you for every shopper who finds an empty shelf.</p>
-<ul><li><b>Depot:</b> hire forklift operators, set their pay, build docks.</li><li><b>Fleet:</b> lease vans, rigids or semis. Every kilometre costs fuel, every hour costs wages.</li><li><b>Stores:</b> keep shelves 90% stocked to win further, better-paying contracts.</li><li><b>Ledger:</b> watch cost per pallet. That number is the game.</li></ul>
-<p>Days run 6am to 6pm. Lunch and late afternoon are busy. Weekends are busier. Reach ${money(GOAL)} to win. Your progress saves each night.</p>
+showModal(`<h2>Pallet Flow: Depot Manager</h2><p>You run a depot. Stores pay you for every pallet delivered and fine you for every shopper who finds an empty shelf.</p>
+<ul><li><b>Depot:</b> order inbound stock, hire forklift operators, set pay, watch morale.</li><li><b>Fleet:</b> lease vans, rigids or semis, give them routes, keep them serviced. Every kilometre costs fuel.</li><li><b>Stores:</b> keep shelves 90% stocked to win further, better-paying contracts.</li><li><b>Invest:</b> upgrades, and a bank loan if you want to grow faster.</li><li><b>Ledger:</b> watch cost per pallet. That number is the game.</li></ul>
+<p>Each day starts paused so you can plan around the weather, fuel price and promos. Days run 6am to 6pm. Progress saves each night.</p>
 <button class="pri go" data-act="${resumed?'continue':'new'}">${resumed?'Continue day '+G.day:'Open the depot'}</button>${resumed?'<button class="go" data-act="new">New game</button>':''}`);
 let last=performance.now(),acc=0,uiT=0;
 function frame(now){const dt=Math.min(.1,(now-last)/1000);last=now;
