@@ -6,35 +6,36 @@
 <title>Pallet Flow</title>
 <meta name="description" content="A live supply-chain simulation: forklifts load pallets, trucks deliver to stores. Find the bottleneck.">
 <style>
-:root{--bg:#0d1117;--card:#151b24;--line:#283241;--ink:#e8eef6;--dim:#93a1b5;--acc:#ff9f1c;--good:#4cc38a;--bad:#ef5b5b;--blue:#58a6ff}
+:root{--bg:#e6e4de;--card:#fbfaf7;--deep:#efede7;--line:#cbc8bf;--ink:#1d1f21;--dim:#5c6066;--acc:#ffd200;--good:#1e8e4e;--bad:#c8281e;--blue:#1f5fa8;--sign:"Avenir Next Condensed","DIN Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
 main{max-width:980px;margin:0 auto;padding:0 16px 64px}
-header{padding:56px 0 8px;max-width:720px}
-.eyebrow{color:var(--acc);font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
-h1{font-size:clamp(32px,8vw,52px);line-height:1.05;margin:10px 0 14px;letter-spacing:-.02em;text-wrap:balance}
-h2{font-size:22px;margin:0 0 6px}
+body{border-top:10px solid transparent;border-image:repeating-linear-gradient(-45deg,#ffd200 0 12px,#1d1f21 12px 24px) 10}
+header{padding:40px 0 8px;max-width:720px}
+.eyebrow{color:var(--ink);font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+h1{font-family:var(--sign);text-transform:uppercase;font-size:clamp(38px,10vw,64px);line-height:1;margin:10px 0 14px;text-wrap:balance}
+h2{font-family:var(--sign);text-transform:uppercase;letter-spacing:.03em;font-size:24px;margin:0 0 6px}
 p{margin:0 0 12px;color:var(--dim)}p b,li b{color:var(--ink)}
-section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:20px}
+section{background:var(--card);border:1px solid var(--line);border-top:4px solid #1d1f21;border-radius:6px;padding:18px;margin-top:20px}
 .sim{display:grid;gap:18px;grid-template-columns:1fr}
 @media(min-width:820px){.sim{grid-template-columns:minmax(0,460px) 1fr;align-items:start}}
-canvas{display:block;width:100%;aspect-ratio:360/520;border-radius:12px;background:#0a0d12;border:1px solid var(--line)}
+canvas{display:block;width:100%;aspect-ratio:360/520;border-radius:6px;background:#6d8a55;border:2px solid #1d1f21}
 label{font-size:14px;color:var(--dim);display:flex;justify-content:space-between;margin-top:10px}
 label b{color:var(--ink);font-variant-numeric:tabular-nums}
-input[type=range]{width:100%;accent-color:var(--acc);height:30px;margin:0}
-.verdict{border-radius:12px;padding:12px 14px;background:#0f141c;border:1px solid var(--line);border-left:4px solid var(--good);margin-bottom:12px}
+input[type=range]{width:100%;accent-color:#1d1f21;height:30px;margin:0}
+.verdict{border-radius:6px;padding:12px 14px;background:#fff;border:1px solid var(--line);border-left:6px solid var(--good);margin-bottom:12px}
 .verdict b{display:block;font-size:17px}.verdict span{font-size:14px;color:var(--dim)}
 .bar{margin:8px 0}.bar .lab{display:flex;justify-content:space-between;font-size:13px;color:var(--dim)}
 .bar .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
-.track{height:10px;background:#0f141c;border-radius:6px;overflow:hidden;margin-top:3px}
+.track{height:10px;background:#d9d6ce;border-radius:6px;overflow:hidden;margin-top:3px}
 .fill{height:100%;border-radius:6px;transition:width .3s}
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-.tile{background:#0f141c;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.tile{background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px 12px}
 .tile small{display:block;color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
 .tile b{font-size:19px;font-variant-numeric:tabular-nums}
 ul{margin:8px 0 0;padding-left:20px;color:var(--dim)}li{margin-bottom:6px}
 .btns{display:flex;gap:8px;margin-top:12px}
-button{background:none;color:var(--ink);border:1px solid var(--line);font:inherit;padding:10px 14px;border-radius:10px;cursor:pointer;min-height:44px;flex:1}
+button{background:#fff;color:var(--ink);border:1.5px solid #1d1f21;font:inherit;font-weight:600;padding:10px 14px;border-radius:6px;cursor:pointer;min-height:44px;flex:1}
 footer{color:var(--dim);font-size:13px;text-align:center;margin-top:28px}
 </style>
 </head>
@@ -44,7 +45,7 @@ footer{color:var(--dim);font-size:13px;text-align:center;margin-top:28px}
   <div class="eyebrow">Abstract Projects · 03</div>
   <h1>A chain moves at the speed of its slowest link.</h1>
   <p>Forklifts pull pallets from the racks and load trucks. Trucks drive to stores. Shoppers empty the shelves. <b>Change the numbers and watch where things jam up.</b></p>
-  <p><a href="game.html" style="display:inline-block;background:var(--acc);color:#1a1205;font-weight:700;text-decoration:none;padding:11px 16px;border-radius:10px">Play the full game: Depot Manager →</a></p>
+  <p><a href="game.html" style="display:inline-block;background:var(--acc);color:#1d1f21;border:1.5px solid #1d1f21;font-weight:700;text-decoration:none;padding:11px 16px;border-radius:6px">Play the full game: Depot Manager →</a></p>
 </header>
 
 <section class="sim">
@@ -53,7 +54,7 @@ footer{color:var(--dim);font-size:13px;text-align:center;margin-top:28px}
     <div class="verdict" id="verdict"><b id="vt">Warming up…</b><span id="vs">Give it a few seconds.</span></div>
     <h2>Pallets per minute</h2>
     <div class="bar"><div class="lab"><span>Shoppers want</span><b id="bD"></b></div><div class="track"><div class="fill" id="fD" style="background:var(--blue)"></div></div></div>
-    <div class="bar"><div class="lab"><span>Forklifts can load</span><b id="bF"></b></div><div class="track"><div class="fill" id="fF" style="background:var(--acc)"></div></div></div>
+    <div class="bar"><div class="lab"><span>Forklifts can load</span><b id="bF"></b></div><div class="track"><div class="fill" id="fF" style="background:#f5a300"></div></div></div>
     <div class="bar"><div class="lab"><span>Trucks can carry</span><b id="bT"></b></div><div class="track"><div class="fill" id="fT" style="background:var(--good)"></div></div></div>
 
     <label>Forklifts <b id="vF"></b></label><input type="range" id="sF" min="1" max="6" value="2">
@@ -158,42 +159,47 @@ function step(dt){time+=dt;
 
 /* ---------- drawing ---------- */
 function rr(x,a,b,w,h,r){x.beginPath();x.roundRect(a,b,w,h,r);x.fill()}
-function pallet(x,a,b,s){x.fillStyle='#c98f4e';x.fillRect(a-s/2,b-s/2,s,s);x.strokeStyle='#7d5526';x.lineWidth=.6;x.strokeRect(a-s/2,b-s/2,s,s)}
-function draw(){const c=$('#c'),r=c.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2),cw=Math.round(r.width*d),ch=Math.round(r.height*d);
-  if(c.width!==cw||c.height!==ch){c.width=cw;c.height=ch}const x=c.getContext('2d'),s=cw/W;x.setTransform(s,0,0,s,0,0);x.clearRect(0,0,W,H);
-  // yard + roads
-  x.fillStyle='#12171f';x.fillRect(0,0,W,H);
-  x.fillStyle='#252c38';x.fillRect(0,OUT_Y-14,W,BACK_Y-OUT_Y+28);
-  for(const dk of docks)x.fillRect(dk.x-13,DOOR_Y,26,OUT_Y-DOOR_Y);
-  for(const h of holds)x.fillRect(h.x-13,HOLD_Y-30,26,OUT_Y-HOLD_Y+30);
-  for(const st of stores)x.fillRect(st.x-13,BACK_Y,26,STORE_Y+30-BACK_Y);
-  x.strokeStyle='#4a5466';x.lineWidth=1;x.setLineDash([8,8]);x.beginPath();x.moveTo(0,(OUT_Y+BACK_Y)/2);x.lineTo(W,(OUT_Y+BACK_Y)/2);x.stroke();x.setLineDash([]);
-  // warehouse
-  x.fillStyle='#1c2430';rr(x,8,8,W-16,DOOR_Y-6,6);x.strokeStyle='#3a4658';x.lineWidth=2;x.strokeRect(8,8,W-16,DOOR_Y-6);
-  x.fillStyle='#93a1b5';x.font='600 9px system-ui';x.fillText('WAREHOUSE',16,DOOR_Y-12);
-  x.fillStyle='#2b3545';x.fillRect(20,14,W-40,20);for(let i=0;i<26;i++){pallet(x,28+i*12.2,19,7);pallet(x,28+i*12.2,29,7)}
-  for(const dk of docks){x.fillStyle='#0a0d12';x.fillRect(dk.x-12,DOOR_Y-1,24,5);x.fillStyle=dk.truck&&dk.truck.state==='loading'?'#ff9f1c':'#3a4658';x.fillRect(dk.x-12,DOOR_Y-3,24,2)}
-  // stores
-  stores.forEach(st=>{const empty=st.stock===0;x.fillStyle=empty?'#3a1d20':'#1c2430';rr(x,st.x-50,STORE_Y+34,100,66,6);
-    x.strokeStyle=empty?'#ef5b5b':'#3a4658';x.lineWidth=empty?2:1.5;x.beginPath();x.roundRect(st.x-50,STORE_Y+34,100,66,6);x.stroke();
-    x.fillStyle=empty?'#ef5b5b':'#e8eef6';x.font='600 10px system-ui';x.fillText(st.name,st.x-43,STORE_Y+48);
-    x.textAlign='right';x.fillText(empty?'EMPTY':st.stock+'',st.x+43,STORE_Y+48);x.textAlign='left';
-    for(let i=0;i<Math.min(st.stock,20);i++)pallet(x,st.x-39+(i%10)*8.7,STORE_Y+60+Math.floor(i/10)*10,7);
-    if(st.flash>0){x.fillStyle='rgba(239,91,91,'+st.flash+')';x.font='11px system-ui';x.fillText('✕ lost sale',st.x-28,STORE_Y+92)}});
-  // trucks
-  for(const t of trucks){x.save();x.translate(t.x,t.y);x.rotate(t.da);x.globalAlpha=t.retire?.5:1;
-    x.fillStyle='#d9dee6';rr(x,-28,-10,40,20,2);x.fillStyle='#58a6ff';rr(x,13,-9,13,18,3);x.fillStyle='#0d1117';x.fillRect(21,-7,3,14);
-    const cols=Math.ceil(t.cap/2),sz=Math.min(8,36/cols-1);for(let i=0;i<t.loaded;i++)pallet(x,-25+sz/2+Math.floor(i/2)*(sz+1),(i%2?5:-5),sz);x.restore()}
-  // forklifts
-  for(const f of forks){x.save();x.translate(f.x,f.y);x.rotate(f.da);x.fillStyle='#ffcc33';rr(x,-6,-4.5,10,9,2);x.fillStyle='#222';x.fillRect(-3,-3,4,6);
-    x.strokeStyle='#bbb';x.lineWidth=1;x.beginPath();x.moveTo(4,-2.5);x.lineTo(10,-2.5);x.moveTo(4,2.5);x.lineTo(10,2.5);x.stroke();if(f.carry)pallet(x,9,0,7);x.restore()}
-}
+function pallet(x,a,b,s){x.fillStyle='#c79a5b';x.fillRect(a-s/2,b-s/2,s,s);x.strokeStyle='#7d5526';x.lineWidth=.5;x.strokeRect(a-s/2,b-s/2,s,s)}
+const SIGN=['#1f5fa8','#1e8e4e','#b3541e','#6a3fa0','#0f7c86'];
+function ground(x,roadTop,roadBot){x.fillStyle='#6d8a55';x.fillRect(0,0,W,H);x.fillStyle='#a9aaa5';x.fillRect(0,0,W,roadTop);x.fillStyle='#3d4045';x.fillRect(0,roadTop,W,roadBot-roadTop)}
+function roadLines(x,roadTop,roadBot){x.strokeStyle='#f2f2ee';x.lineWidth=1.2;x.setLineDash([9,8]);x.beginPath();x.moveTo(0,(roadTop+roadBot)/2);x.lineTo(W,(roadTop+roadBot)/2);x.stroke();x.setLineDash([]);
+  x.lineWidth=.8;x.globalAlpha=.7;x.beginPath();x.moveTo(0,roadTop+1.5);x.lineTo(W,roadTop+1.5);x.stroke();x.globalAlpha=1}
+function depot(x,label){x.fillStyle='rgba(0,0,0,.18)';x.fillRect(11,11,W-16,DOOR_Y-6);x.fillStyle='#dcd9d0';x.fillRect(8,8,W-16,DOOR_Y-6);x.strokeStyle='#4b4e52';x.lineWidth=3;x.strokeRect(8,8,W-16,DOOR_Y-6);
+  x.strokeStyle='#f5c400';x.lineWidth=1.5;x.setLineDash([10,6]);x.beginPath();x.moveTo(14,DOOR_Y-22);x.lineTo(W-14,DOOR_Y-22);x.stroke();x.setLineDash([]);
+  x.fillStyle='#2f5d9e';x.fillRect(20,13,W-40,22);x.fillStyle='#e8731c';x.fillRect(20,23.2,W-40,1.6);for(let i=0;i<26;i++){pallet(x,28+i*12.2,18.5,7);pallet(x,28+i*12.2,29.5,7)}
+  x.fillStyle='#4b4e52';x.font='700 10px '+FONT;x.textAlign='right';x.fillText(label,W-16,DOOR_Y-28);x.textAlign='left'}
+function door(x,dx,open,active){if(!open){x.strokeStyle='#8d8f8b';x.lineWidth=1;x.setLineDash([3,3]);x.strokeRect(dx-14,DOOR_Y+3,28,74);x.setLineDash([]);return}
+  x.strokeStyle='#f5c400';x.lineWidth=1.4;x.strokeRect(dx-14,DOOR_Y+3,28,74);x.fillStyle='#26282b';x.fillRect(dx-12,DOOR_Y-3,24,6);
+  x.fillStyle=active?'#27c267':'#c8281e';x.beginPath();x.arc(dx+17,DOOR_Y-7,2.4,0,7);x.fill()}
+function bay(x,hx,y,h){x.strokeStyle='#f2f2ee';x.lineWidth=1;x.setLineDash([4,4]);x.strokeRect(hx-14,y,28,h);x.setLineDash([]);x.fillStyle='rgba(242,242,238,.7)';x.font='700 8px '+FONT;x.fillText('P',hx-3,y+10)}
+function truckBody(x,L,cab,loaded,cap,broken){const tl=L-13;x.fillStyle='rgba(0,0,0,.28)';x.fillRect(-L/2+2,-8,L,20);
+  x.fillStyle=broken?'#f0c9c4':'#f7f7f4';rr(x,-L/2,-10,tl,20,2);x.strokeStyle='#55585c';x.lineWidth=.8;x.beginPath();x.roundRect(-L/2,-10,tl,20,2);x.stroke();
+  x.fillStyle=cab;rr(x,L/2-12,-9,12,18,3);x.fillStyle='#1d1f21';x.fillRect(L/2-5,-7,3,14);
+  const cols=Math.ceil(cap/2),sz=Math.min(8,(tl-3)/cols-.6);for(let i=0;i<loaded;i++)pallet(x,-L/2+2+sz/2+Math.floor(i/2)*(sz+.6),(i%2?4.5:-4.5),sz)}
+function forklift(x,f){x.save();x.translate(f.x,f.y);x.rotate(f.da);x.fillStyle='rgba(0,0,0,.25)';x.fillRect(-5,-3.5,10,9);x.fillStyle='#f5a300';rr(x,-6,-4.5,10,9,2);x.fillStyle='#1d1f21';x.fillRect(-3,-3,4,6);
+  x.strokeStyle='#33363a';x.lineWidth=1.2;x.beginPath();x.moveTo(4,-2.5);x.lineTo(10,-2.5);x.moveTo(4,2.5);x.lineTo(10,2.5);x.stroke();if(f.carry)pallet(x,9,0,7);x.restore()}
+function storeBox(x,bx,by,bw,bh,name,col,empty,promo){x.fillStyle='rgba(0,0,0,.22)';x.fillRect(bx+3,by+3,bw,bh);x.fillStyle='#f1eee6';x.fillRect(bx,by,bw,bh);
+  x.fillStyle=empty?'#c8281e':col;x.fillRect(bx,by,bw,13);x.strokeStyle=promo?'#ffd200':'#4b4e52';x.lineWidth=promo?2.5:1.2;x.strokeRect(bx,by,bw,bh);
+  x.fillStyle='#fff';x.font='700 9px '+FONT;x.fillText(name,bx+5,by+10)}
+function setup(){const c=$('#c'),r=c.getBoundingClientRect(),dp=Math.min(window.devicePixelRatio||1,2),cw=Math.round(r.width*dp),ch=Math.round(r.height*dp);
+  if(c.width!==cw||c.height!==ch){c.width=cw;c.height=ch}const x=c.getContext('2d'),s=cw/W;x.setTransform(s,0,0,s,0,0);return x}
+const FONT='"Avenir Next Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif';
+function draw(){const x=setup();ground(x,OUT_Y-14,BACK_Y+14);
+  x.fillStyle='#3d4045';for(const st of stores)x.fillRect(st.x-13,BACK_Y,26,STORE_Y+34-BACK_Y);roadLines(x,OUT_Y-14,BACK_Y+14);
+  for(const h of holds)bay(x,h.x,HOLD_Y-34,66);
+  depot(x,'WAREHOUSE');for(const d of docks)door(x,d.x,true,d.truck&&d.truck.state==='loading'&&d.truck.store);
+  stores.forEach((st,i)=>{const empty=st.stock===0,bx=st.x-50,by=STORE_Y+34;storeBox(x,bx,by,100,66,st.name,SIGN[i],empty,false);
+    x.fillStyle='#fff';x.textAlign='right';x.font='700 9px '+FONT;x.fillText(empty?'EMPTY':st.stock+' pallets',bx+95,by+10);x.textAlign='left';
+    for(let k=0;k<Math.min(st.stock,20);k++)pallet(x,st.x-39+(k%10)*8.7,by+26+Math.floor(k/10)*10,7);
+    if(st.flash>0){x.fillStyle='rgba(200,40,30,'+Math.min(1,st.flash*1.6)+')';x.font='700 10px '+FONT;x.fillText('✕ LOST SALE',bx+6,by+58)}});
+  for(const t of trucks){x.save();x.translate(t.x,t.y);x.rotate(t.da);x.globalAlpha=t.retire?.5:1;truckBody(x,54,'#1f5fa8',t.loaded,t.cap,false);x.restore()}
+  for(const f of forks)forklift(x,f)}
 
 /* ---------- ui ---------- */
 function ui(){const dem=3*P.D,fk=P.F*60/cycle,tr=P.K*P.C*60/trip,mx=Math.max(dem,fk,tr,1);
   $('#bD').textContent=dem.toFixed(0);$('#bF').textContent=fk.toFixed(0);$('#bT').textContent=tr.toFixed(0);
   $('#fD').style.width=dem/mx*100+'%';$('#fF').style.width=fk/mx*100+'%';$('#fT').style.width=tr/mx*100+'%';
-  $('#tA').textContent=(avail*100).toFixed(0)+'%';$('#tA').style.color=avail>.97?'var(--good)':avail>.85?'var(--acc)':'var(--bad)';
+  $('#tA').textContent=(avail*100).toFixed(0)+'%';$('#tA').style.color=avail>.97?'var(--good)':avail>.85?'#c27a00':'var(--bad)';
   $('#tDel').textContent=delivered.toLocaleString();$('#tFu').textContent=(fUtil*100).toFixed(0)+'%';$('#tTw').textContent=(tWait*100).toFixed(0)+'%';
   let t,sub,col='var(--bad)';
   if(time<12){t='Warming up…';sub='Give it a few seconds.';col='var(--dim)'}
@@ -201,7 +207,7 @@ function ui(){const dem=3*P.D,fk=P.F*60/cycle,tr=P.K*P.C*60/trip,mx=Math.max(dem
   else if(fk<dem*1.05&&fk<=tr){t='Bottleneck: forklifts';sub='They can\'t load as fast as shoppers buy. Trucks sit at the dock waiting.'}
   else if(tr<dem*1.05){t='Bottleneck: trucks';sub='Not enough truck space on the road. Add trucks or make them bigger.'}
   else if(fUtil>.9){t='Bottleneck: forklifts';sub='Flat out and still behind.'}
-  else{col='var(--acc)';t='Enough on paper, gaps in practice';sub='Capacity covers average demand, but random rushes and waiting for trucks to fill still empty shelves.'}
+  else{col='#f5a300';t='Enough on paper, gaps in practice';sub='Capacity covers average demand, but random rushes and waiting for trucks to fill still empty shelves.'}
   $('#vt').textContent=t;$('#vs').textContent=sub;$('#verdict').style.borderLeftColor=col}
 const sl={F:['sF','vF',v=>v],K:['sK','vK',v=>v],C:['sC','vC',v=>v],D:['sD','vD',v=>v+' / min'],S:['sS','vS',v=>v+'×']};
 for(const k in sl){const[a,b,f]=sl[k],el=$('#'+a),up=()=>{P[k]=+el.value;$('#'+b).textContent=f(P[k]);if(forks)sync()};el.addEventListener('input',up);up()}
