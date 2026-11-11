@@ -92,8 +92,9 @@ function tutTick(){const el=$('#coach');if(!el)return;document.querySelectorAll(
 let crashed=false;
 function crash(msg){if(crashed)return;crashed=true;speed=0;const d=document.createElement('div');d.className='modal show';d.style.zIndex=50;
   d.innerHTML=`<div class="box"><h2>Something went wrong</h2><p>The game hit an error and has paused. Your save from the end of the last day is safe.</p><p style="font-family:monospace;font-size:12px;word-break:break-word">${String(msg).replace(/</g,'&lt;')}</p><button class="pri go" data-act="crashreload">Reload the game</button></div>`;document.body.appendChild(d)}
-addEventListener('error',e=>crash((e.message||'Error')+' ('+(e.filename||'').split('/').pop()+':'+e.lineno+')'));
-addEventListener('unhandledrejection',e=>crash('Promise: '+(e.reason&&e.reason.message||e.reason)));
+const ours=t=>/(game|shell)\.js/.test(String(t||''));
+addEventListener('error',e=>{if(ours(e.filename)||ours(e.error&&e.error.stack))crash((e.message||'Error')+' ('+(e.filename||'').split('/').pop()+':'+e.lineno+')')});
+addEventListener('unhandledrejection',e=>{if(ours(e.reason&&e.reason.stack))crash('Promise: '+(e.reason.message||e.reason))});
 
 /* ---------- boot ---------- */
 (function(){saveSet();try{const old=JSON.parse(localStorage.getItem(KEY));if(old&&old.v===5&&!readSlot(0)){G=old;slot=0;save();localStorage.removeItem(KEY)}}catch(e){}
