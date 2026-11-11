@@ -73,6 +73,31 @@ a{color:var(--blue)}
   .side{overflow-y:auto;min-height:0;padding-right:4px}
   .keys{display:block!important}
 }
+.coach{background:#1d1f21;color:#fff;border-radius:6px;border-left:6px solid #ffd200;padding:10px 12px;margin-bottom:8px;font-size:14px}
+.coach b{color:#ffd200;font-family:var(--sign);font-size:17px;text-transform:uppercase;letter-spacing:.03em;display:block}
+.coach .cb{display:flex;gap:6px;margin-top:8px}.coach button{min-height:34px;padding:4px 12px;font-size:13px}.coach small{color:#b9bcc0}
+.hl{outline:3px solid #ffd200!important;outline-offset:2px;animation:hl 1s ease-in-out infinite}@keyframes hl{50%{outline-color:#1d1f21}}
+.menu{position:fixed;inset:0;z-index:20;display:none;background:rgba(18,20,22,.9);color:#fff;overflow:auto}
+.menu.show{display:flex}.menu::before{content:"";position:fixed;left:0;right:0;top:0;height:10px;background:repeating-linear-gradient(-45deg,#ffd200 0 12px,#1d1f21 12px 24px)}
+.mm{margin:auto 0;padding:48px clamp(18px,6vw,90px);width:min(100%,620px)}
+.mm small.eb{color:#ffd200;letter-spacing:.16em;text-transform:uppercase;font-weight:700;font-size:13px}
+.mm h1{font-family:var(--sign);font-size:clamp(64px,16vw,128px);line-height:.86;margin:10px 0 6px;text-transform:uppercase;letter-spacing:-.01em}
+.mm h1 i{font-style:normal;color:#ffd200}.mm .sub{font-family:var(--sign);font-size:24px;text-transform:uppercase;letter-spacing:.2em;color:#d9dbde}
+.mm h2{font-family:var(--sign);font-size:34px;text-transform:uppercase;margin:0 0 10px}.mm p{color:#c5c8cc}.mm h3{color:#ffd200;margin-top:14px}
+.mmbtns{display:flex;flex-direction:column;gap:8px;margin-top:28px;max-width:340px}
+.mmbtns button,.mm .wide{font-family:var(--sign);font-size:22px;text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:10px 16px;min-height:50px;background:rgba(255,255,255,.06);color:#fff;border:1.5px solid rgba(255,255,255,.35)}
+.mmbtns button:hover,.mmbtns button:focus-visible{background:#ffd200;color:#1d1f21;border-color:#ffd200;outline:none}.mmbtns button.pri{background:#ffd200;color:#1d1f21;border-color:#ffd200}
+.mmbtns button small{display:block;font-family:system-ui,sans-serif;font-size:12px;letter-spacing:0;text-transform:none;opacity:.8;font-weight:500}
+.mmver{margin-top:26px;color:#8d9096;font-size:12px}
+.mm .card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mm .card b{display:block;font-size:16px}.mm .card span{color:#c5c8cc;font-size:13px}.mm .card.sel{border-color:#ffd200;background:rgba(255,210,0,.12)}
+.mm input[type=text]{width:100%;font:inherit;font-weight:700;padding:10px;border:1.5px solid #fff;border-radius:6px;background:#fff;color:#1d1f21}
+.mm input[type=range]{width:100%;accent-color:#ffd200;height:32px}
+.mm .seg button{background:rgba(255,255,255,.06);color:#fff;border-color:rgba(255,255,255,.35)}.mm .seg button.on{background:#ffd200;color:#1d1f21;border-color:#ffd200}
+.mm label.ck{display:flex;gap:8px;align-items:center;margin:10px 0;color:#fff}.mm label.ck input{width:20px;height:20px;accent-color:#ffd200}
+.mm a{color:#ffd200}
+.side,.kpis{zoom:var(--ui,1)}
+@media(min-width:1000px){.menu{background:linear-gradient(90deg,rgba(18,20,22,.96) 0,rgba(18,20,22,.9) 40%,rgba(18,20,22,.62) 100%)}}
 .keys{display:none;font-size:12px;color:var(--dim);margin:-2px 0 8px}
 </style>
 </head>
@@ -93,9 +118,10 @@ a{color:var(--blue)}
   </div>
   <div class="side">
     <div class="bar" id="speed">
-      <button data-act="speed:0">❚❚</button><button data-act="speed:1">1×</button><button data-act="speed:2">2×</button><button data-act="speed:4">4×</button><button data-act="speed:8">8×</button><button data-act="snd" id="snd" style="flex:.6">🔊</button>
+      <button data-act="speed:0">❚❚</button><button data-act="speed:1">1×</button><button data-act="speed:2">2×</button><button data-act="speed:4">4×</button><button data-act="speed:8">8×</button><button data-act="snd" id="snd" style="flex:.6">🔊</button><button data-act="pause" style="flex:.6" title="Menu (Esc)">☰</button>
     </div>
     <div class="keys">Keys: space pauses, 1 to 4 set speed. Drag the map, scroll to zoom.</div>
+    <div class="coach" id="coach" hidden></div>
     <div class="advice" id="advice">Good morning.</div>
     <div class="toast" id="toast"></div>
     <div class="tabs" id="tabs">
@@ -106,6 +132,8 @@ a{color:var(--blue)}
   </div>
 </main>
 <div class="modal" id="modal"><div class="box" id="mbox"></div></div>
+<div class="menu" id="menu"></div>
 <script src="game.js"></script>
+<script src="shell.js"></script>
 </body>
 </html>

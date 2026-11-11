@@ -40,12 +40,13 @@ const stars=o=>'★'.repeat(Math.min(3,Math.floor(o.drv.days/4)))||'new',skill=o
 function charge(k,a){G.cash-=a;S.d[k]+=a}
 function say(m,bad){$('#toast').textContent=m;S.log.unshift(clockStr()+' '+m);if(S.log.length>40)S.log.pop();if(bad)sfx('bad')}
 const clockStr=()=>hhmm(Math.min(S.t1,S.clock));
-function save(){try{localStorage.setItem(KEY,JSON.stringify(G))}catch(e){}}
-function load(){try{const g=JSON.parse(localStorage.getItem(KEY));if(g&&g.v===5&&g.stores.length===DEFS.length)return g}catch(e){}return null}
+let slot=0,attract=false;const slotKey=n=>'pf5-slot-'+n;
+function save(){if(attract)return;try{localStorage.setItem(slotKey(slot),JSON.stringify({meta:{co:G.co.n,col:G.co.col,day:G.day,net:G.cash-G.loan,sc:G.sc,ts:Date.now()},g:G}))}catch(e){}}
+function readSlot(n){try{const o=JSON.parse(localStorage.getItem(slotKey(n)));if(o&&o.g&&o.g.v===5&&o.g.stores.length===DEFS.length)return o}catch(e){}return null}
 let actx,lastCoin=0;
-function sfx(k){if(!G||!G.snd)return;try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();const now=performance.now();if(k==='coin'){if(now-lastCoin<160)return;lastCoin=now}
+function sfx(k){if(typeof SET==='undefined'||SET.mute||attract||!SET.vol)return;try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();const now=performance.now();if(k==='coin'){if(now-lastCoin<160)return;lastCoin=now}
   const o=actx.createOscillator(),g=actx.createGain(),t=actx.currentTime,f={coin:[880,1320,.05,.12],bad:[220,140,.09,.3],click:[520,520,.03,.05],win:[660,990,.08,.5]}[k];o.type=k==='bad'?'sawtooth':'triangle';o.frequency.setValueAtTime(f[0],t);o.frequency.exponentialRampToValueAtTime(f[1],t+f[3]);
-  g.gain.setValueAtTime(f[2],t);g.gain.exponentialRampToValueAtTime(.0001,t+f[3]);o.connect(g).connect(actx.destination);o.start(t);o.stop(t+f[3]+.02)}catch(e){}}
+  g.gain.setValueAtTime(f[2]*SET.vol*1.7,t);g.gain.exponentialRampToValueAtTime(.0001,t+f[3]);o.connect(g).connect(actx.destination);o.start(t);o.stop(t+f[3]+.02)}catch(e){}}
 function genCond(prev){const r=Math.random(),on=onStores(),pick=()=>on[Math.floor(Math.random()*on.length)];
   return{wx:r<.18?'rain':r<.26?'heat':'fine',promo:Math.random()<.3?pick():-1,road:Math.random()<.14?pick():-1,fuel:Math.max(G.sc==='fuel'?1.52:.75,Math.min(G.sc==='fuel'?2.1:1.6,prev.fuel+(Math.random()-.5)*.14+((G.sc==='fuel'?1.7:1)-prev.fuel)*.08+(Math.random()<.07?.25:0)))}}
 function condList(c,day){const a=[],dow=(day-1)%7;a.push(c.wx==='rain'?'🌧 Rain: trucks 25% slower, slightly fewer shoppers':c.wx==='heat'?'☀️ Heatwave: 25% more shoppers':'⛅ Fine weather');
@@ -55,7 +56,7 @@ function condList(c,day){const a=[],dow=(day-1)%7;a.push(c.wx==='rain'?'🌧 Rai
 const newDep=own=>({own,fk:own?3:2,docks:2,wh:own?120:80,order:own?110:0,rack:0,sup:false,inMode:'spread',fkMode:'auto',fkDock:[],s0:360,s1:1080,cool:0,cold:0,corder:0,chill:false});
 function newDriver(){const used=new Set(G.fleet.map(o=>o.drv&&o.drv.n));let n;do{n=FIRST[Math.floor(Math.random()*FIRST.length)]+' '+String.fromCharCode(65+Math.floor(Math.random()*26))+'.'}while(used.has(n));return{n,start:360,days:0,tired:false}}
 function newTruck(type,dep,own){const o={id:G.nid++,type,cond:100,route:-1,dep,own:!!own,reefer:false,plan:[]};o.drv=newDriver();o.drv.start=G.deps[dep].s0;G.fleet.push(o);return o}
-function newGame(sc,co){G={v:5,sc:sc||'std',co:co||{n:'Caselka Freight',col:LIVERY[0]},snd:G?G.snd:true,day:1,cash:sc==='xmas'?25000:10000,loan:0,pay:1,morale:70,minLoad:.5,maxDrops:2,auto:true,tank:500,fuelHist:[sc==='fuel'?1.6:1],fkPri:'bal',backhaul:false,tolls:false,up:{},tr:false,ach:{},lateWeek:0,
+function newGame(sc,co){G={v:5,sc:sc||'std',co:co||{n:'Caselka Freight',col:LIVERY[0]},day:1,cash:sc==='xmas'?25000:10000,loan:0,pay:1,morale:70,minLoad:.5,maxDrops:2,auto:true,tank:500,fuelHist:[sc==='fuel'?1.6:1],fkPri:'bal',backhaul:false,tolls:false,up:{},tr:false,ach:{},lateWeek:0,
   deps:[newDep(true),newDep(false),newDep(false)],fleet:[],nid:1,stores:DEFS.map((d,i)=>({on:i<2,stock:Math.round(d.cap*.6),cstock:0,sat:70,rm:1,dm:1,wSold:0,wLost:0,wRev:0,lock:0})),hist:[],tier:0,cond:{wx:'fine',promo:-1,road:-1,fuel:sc==='fuel'?1.6:1}};newTruck('r16',0);newTruck('r10',0).drv.start=600;if(sc==='xmas'||sc==='strike'){newTruck('r16',0);G.deps[0].fk=4;G.deps[0].order=150}if(sc==='strike')G.cash=14000;sel=0}
 function startDay(){const dow=(G.day-1)%7,ow=owned();
   S={clock:Math.min(...ow.map(b=>G.deps[b].s0)),over:false,trucks:[],runs:[],seq:0,log:[],dayMul:dow>=5?1.35:1,
@@ -210,7 +211,7 @@ function kpis(){const d=S.d,drv=S.trucks.filter(t=>!t.inb&&!t.noShow).length,ow=
 const KPI=[['loads','Loads out'],['drops','Drops'],['ratio','Drops / load'],['fill','Truck fill'],['out','Pallets out'],['inn','Pallets in'],['stock','Depot stock'],['km','Distance'],['kmp','Km / pallet'],['cpp','Cost / pallet'],['ot','On time'],['wait','Window waits'],['fk','Forklifts busy'],['dock','Docks in use'],['drv','Loads / driver'],['oth','Driver overtime'],['cold','Chilled out'],['lit','Diesel used'],['l100','Per 100 km'],['av','Shelves stocked']];
 function winChance(bid){const h=G.hist.slice(-7),av=h.length?h.reduce((a,x)=>a+x.avail,0)/h.length:.9;return Math.max(.1,Math.min(.95,.6+(av-.9)*2.5+[.28,0,-.25][bid]))}
 
-function endDay(){S.over=true;let kept=0,spoilt=0;const ow=owned();for(const b of ow){const g=G.deps[b];charge('stor',(g.wh+g.cold)*STOR);kept+=g.wh+g.cold;const sp=Math.round(g.cold*.15);g.cold-=sp;spoilt+=sp;charge('spoil',sp*SPOIL)}
+function endDay(){if(attract){startAttract();return}S.over=true;let kept=0,spoilt=0;const ow=owned();for(const b of ow){const g=G.deps[b];charge('stor',(g.wh+g.cold)*STOR);kept+=g.wh+g.cold;const sp=Math.round(g.cold*.15);g.cold-=sp;spoilt+=sp;charge('spoil',sp*SPOIL)}
   const d=S.d,k=kpis(),profit=d.rev+d.bh-costs(d),avail=d.sold/Math.max(1,d.sold+d.lost);G.hist.push({day:G.day,profit,avail,cash:G.cash-G.loan});if(G.hist.length>60)G.hist.shift();
   G.fleet.forEach(o=>{o.drv.days++;o.drv.tired=!!o.drv.tiredNext;o.drv.tiredNext=false});
   let notes='';G.stores.forEach((s,i)=>{if(!s.on)return;const rival=RIVALS[i%3];
@@ -224,7 +225,7 @@ function endDay(){S.over=true;let kept=0,spoilt=0;const ow=owned();for(const b o
     const h=G.hist.slice(-7),av=h.reduce((a,x)=>a+x.avail,0)/h.length,pf=h.reduce((a,x)=>a+x.profit,0),grade=av>=.97&&pf>0?'A':av>=.93?'B':av>=.88?'C':av>=.8?'D':'E';if(!G.lateWeek)G.ach.ontime=1;
     notes+=`<div class="offer"><b>Week ${G.day/7} report card: ${grade}</b><p style="margin:4px 0 0">Shelves stocked ${(av*100).toFixed(0)}% across the week, ${G.lateWeek} late arrival${G.lateWeek===1?'':'s'}, ${money(pf)} profit. ${up?up+' store'+(up===1?'':'s')+' hit 97% and paid service bonuses worth <b>'+money(bonus)+'</b>; they grow 5% and pay 2% more.':'No store reached the 97% needed for a service bonus.'}${dn?' '+dn+' under 85% cut their rate 3%.':''}</p></div>`;G.lateWeek=0}
   const dead=G.cash<-5000||!G.stores.some(s=>s.on),off=nextOffer(),canOffer=!dead&&off>=0&&avail>=.9,nOn=onStores().length;
-  const got=[];const A=(k,ok)=>{if(ok&&!G.ach[k]){G.ach[k]=1;got.push(ACH.find(a=>a[0]===k)[1])}};A('profit',profit>0);A('full',d.lost===0&&d.sold>50);A('ten',nOn>=10);A('dep2',ow.length>1);A('drops',d.drops>=100);A('cold',d.cold>=40);A('reg',onStores().some(i=>DEFS[i].reg));A('gold',G.cash-G.loan>=250000);A('all',nOn>=30);if(G.ach.ontime===1){G.ach.ontime=2;got.push('Clockwork')}
+  const got=[];const A=(k,ok)=>{if(ok&&!G.ach[k]){G.ach[k]=1;got.push(ACH.find(a=>a[0]===k)[1]);if(window.pfDesktop)window.pfDesktop.unlock(k)}};A('profit',profit>0);A('full',d.lost===0&&d.sold>50);A('ten',nOn>=10);A('dep2',ow.length>1);A('drops',d.drops>=100);A('cold',d.cold>=40);A('reg',onStores().some(i=>DEFS[i].reg));A('gold',G.cash-G.loan>=250000);A('all',nOn>=30);if(G.ach.ontime===1){G.ach.ontime=2;got.push('Clockwork')}
   let win='';if(!dead&&G.tier<TIERS.length&&G.cash-G.loan>=TIERS[G.tier][0]){const t=TIERS[G.tier++];sfx('win');win=`<div class="offer"><b>🏆 ${t[1]} network: ${money(t[0])} net worth.</b><p style="margin:4px 0 0">${G.tier<TIERS.length?'Next: '+TIERS[G.tier][1]+' at '+money(TIERS[G.tier][0])+'.':'Top tier. You run the state.'}</p></div>`}
   if(got.length)win+=`<p><b>🎖 Achievement${got.length>1?'s':''}:</b> ${got.join(', ')}.</p>`;
   const row=(a,b,c)=>`<tr${c?' class="'+c+'"':''}><td>${a}</td><td>${b}</td></tr>`,opt=(a,v)=>v?row(a,money(-v)):'';
@@ -233,8 +234,8 @@ function endDay(){S.over=true;let kept=0,spoilt=0;const ow=owned();for(const b o
   <tr class="tot"><td>Profit today</td><td class="${profit<0?'neg':'pos'}">${money(profit)}</td></tr>${row('Cash',money(G.cash))}${G.loan?row('Loan owing',money(-G.loan)):''}${row('Cost per pallet delivered',k.cpp)}${row('Truck fill / drops per load',k.fill+' / '+k.ratio)}</table>${notes}${win}`;
   if(canOffer){const o=DEFS[off],bids=[['Sharp',-10],['Fair',0],['Premium',12]];h+=`<div class="offer" id="offer"><b>Tender: ${o.n}</b><p style="margin:4px 0 8px">Served from ${DEPN[o.b]}, ${o.km} km out${o.reg?' (a regional run: about 7 hours there and back)':''}. About ${o.dem} pallets an hour, list rate ${money(o.rate)} a pallet. ${winText(off)} ${RIVALS[off%3]} is bidding too. Your service record sets your odds.</p><div class="seg">${bids.map((b,j)=>`<button data-act="bid:${off}:${j}">${b[0]}<small>${money(o.rate*(1+b[1]/100))} · ${Math.round(winChance(j)*100)}% to win</small></button>`).join('')}</div></div>`}
   else if(!dead&&off>=0)h+=`<p>Keep shelves stocked 90% of a day to be invited to the next tender (${DEFS[off].n}).</p>`;
-  G.day++;if(dead){try{localStorage.removeItem(KEY)}catch(e){}h+=`<button class="pri go" data-act="menu">Start again</button>`}
-  else{G.cond=genCond(G.cond);G.fuelHist.push(G.cond.fuel);if(G.fuelHist.length>12)G.fuelHist.shift();h+=`<h3 style="margin-top:14px">Tomorrow's forecast</h3><ul>${condList(G.cond,G.day).map(x=>'<li>'+x+'</li>').join('')}</ul>`;save();h+=`<button class="pri go" data-act="next">Plan day ${G.day}</button>`}
+  G.day++;if(dead){try{localStorage.removeItem(slotKey(slot))}catch(e){}h+=`<button class="pri go" data-act="menu">Start again</button>`}
+  else{G.cond=genCond(G.cond);G.fuelHist.push(G.cond.fuel);if(G.fuelHist.length>12)G.fuelHist.shift();h+=`<h3 style="margin-top:14px">Tomorrow's forecast</h3><ul>${condList(G.cond,G.day).map(x=>'<li>'+x+'</li>').join('')}</ul>`;save();h+=nextBtn()}
   showModal(h)}
 function winText(i){const d=DEFS[i],a=[];if(d.open>300||d.close<1200)a.push('Receives '+hr(d.open)+':00 to '+hr(d.close)+':00'+(d.strict?' (strict: double fine)':''));if(d.tg)a.push('No dock: tailgate trucks only');return a.join('. ')+(a.length?'.':'')}
 function showModal(h){$('#mbox').innerHTML=h;$('#modal').classList.add('show');$('#modal').scrollTop=0;modal=true}
@@ -292,8 +293,8 @@ function draw(){const c=$('#c'),r=c.getBoundingClientRect(),dp=Math.min(window.d
     const ch=chill(i),empty=st.stock===0||(ch&&st.cstock===0),promo=C.promo===i,shut=S.clock<d.open||S.clock>d.close;x.fillStyle='rgba(0,0,0,.22)';x.fillRect(bx+3,d.y+3,66,42);x.fillStyle='#f1eee6';x.fillRect(bx,d.y,66,42);x.fillStyle=st.stock===0?'#c8281e':SIGN[i%SIGN.length];x.fillRect(bx,d.y,66,far?20:13);
     x.strokeStyle=promo?'#ffd200':'#4b4e52';x.lineWidth=promo?2.5:1.2;x.strokeRect(bx,d.y,66,42);
     if(far){x.fillStyle='#fff';x.font='700 15px '+FONT;x.fillText(st.stock===0?'EMPTY':st.stock+'/'+c,bx+5,d.y+15);x.fillStyle='#cfccc3';x.fillRect(bx+5,d.y+25,56,11);x.fillStyle=st.stock<c*.25?'#f5a300':'#b9803f';x.fillRect(bx+5,d.y+25,56*Math.min(1,st.stock/c),11)}
-    else{x.fillStyle='#fff';x.font='700 9px '+FONT;x.fillText(d.n,bx+5,d.y+10);x.fillStyle=shut?'#c8281e':'#5c6066';x.font='7.5px '+FONT;x.fillText(d.km+'km'+(d.open>300||d.close<1200?' '+hr(d.open)+'–'+hr(d.close):'')+(d.tg?' TG':'')+(d.reg?' REGIONAL':''),bx+5,d.y+24);
-      x.fillStyle=st.stock===0?'#c8281e':'#1d1f21';x.textAlign='right';x.font='700 8.5px '+FONT;x.fillText(st.stock===0?'EMPTY':st.stock+'/'+c,bx+61,d.y+24);x.textAlign='left';
+    else{x.fillStyle='#fff';x.font='700 '+(d.n.length>10?7.5:8.5)+'px '+FONT;x.fillText(d.n,bx+3,d.y+10);x.fillStyle=shut?'#c8281e':'#5c6066';x.font='7.5px '+FONT;x.fillText(d.km+'km'+(d.open>300||d.close<1200?' '+hr(d.open)+'–'+hr(d.close):'')+(d.tg?' TG':'')+(d.reg?' REGIONAL':''),bx+5,d.y+24);
+      x.fillStyle='#fff';x.textAlign='right';x.font='700 7.5px '+FONT;x.fillText(st.stock===0?'EMPTY':st.stock+'/'+c,bx+63,d.y+10);x.textAlign='left';
       const bh_=ch?4:7;x.fillStyle='#cfccc3';x.fillRect(bx+5,d.y+29,56,bh_);x.fillStyle=st.stock<c*.25?'#f5a300':'#b9803f';x.fillRect(bx+5,d.y+29,56*Math.min(1,st.stock/c),bh_);
       if(ch){x.fillStyle='#cfccc3';x.fillRect(bx+5,d.y+34.5,56,3.5);x.fillStyle=st.cstock?'#3ba3d8':'#c8281e';x.fillRect(bx+5,d.y+34.5,st.cstock?56*Math.min(1,st.cstock/ccap(i)):56,3.5)}}
     if(C.road===i){const my=d.y-34;x.fillStyle='#f57c00';x.beginPath();x.moveTo(d.x+22,my-7);x.lineTo(d.x+29,my+5);x.lineTo(d.x+15,my+5);x.closePath();x.fill();x.fillStyle='#1d1f21';x.font='700 8px '+FONT;x.fillText('!',d.x+20.5,my+3.5)}
@@ -356,7 +357,7 @@ function runsHtml(){const d=S.d,own=S.trucks.filter(t=>!t.inb&&!t.noShow),k=kpis
   return`<h3>Transport daily runsheet</h3><table>${row('Total loads',d.loads)}${row('Drivers',own.length)}${row('Total pallets',S.runs.reduce((a,r)=>a+r.pal,0))}${row('Total drops',S.runs.reduce((a,r)=>a+r.stops.length,0))}${row('Drop ratio',k.ratio)}${row('Driver ratio / load',k.drv)}${row('At the dock now',own.filter(t=>t.state==='loading').length)}${row('Late arrivals',d.late)}</table><h3>Loads</h3>`+
   (S.runs.slice(-40).reverse().map(r=>`<div class="run"><b>${r.no} · ${r.t} · ${r.drv}${r.plan?' <span class="tag">PLANNED</span>':''}</b><span>${DEPN[r.b]} · sealed ${hhmm(r.seal)} · ${r.pal} pallets${r.cold?' ('+r.cold+' chilled)':''} · ${Math.round(r.km)} km · ${r.status}</span>${r.stops.map((s,j)=>`<div class="stop ${s.late?'neg':s.arr?'pos':''}">${j+1}. ${DEFS[s.i].n} · ${s.q} pal · window ${hr(DEFS[s.i].open)}–${hr(DEFS[s.i].close)} · ${s.arr?hhmm(s.arr)+(s.late?' LATE':' ✓'):'due'}</div>`).join('')}</div>`).join('')||'<p>No loads despatched yet today.</p>')}
 function render(){document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.act==='tab:'+tab));
-  document.querySelectorAll('#speed button').forEach(b=>b.classList.toggle('on',b.dataset.act==='speed:'+speed));const sb=$('#snd');if(sb)sb.textContent=G.snd?'🔊':'🔇';
+  document.querySelectorAll('#speed button').forEach(b=>b.classList.toggle('on',b.dataset.act==='speed:'+speed));const sb=$('#snd');if(sb)sb.textContent=SET.mute?'🔇':'🔊';
   const g=G.deps[sel],sd=S.deps[sel];let h='';
   if(tab==='team'){h=chips();if(!g.own)h+=buyCard(sel);else{const others=owned().filter(b=>b!==sel);
     h+=`<h3>Today</h3><ul class="cond">${condList(G.cond,G.day0).map(x=>'<li>'+x+'</li>').join('')}</ul>
@@ -427,16 +428,16 @@ function live(){const d=S.d,pr=d.rev+d.bh-costs(d),g=G.deps[sel],sd=S.deps[sel],
   document.querySelectorAll('[data-w]').forEach(e=>{const q=+v[e.dataset.w];e.style.width=q+'%';e.style.background=q>60?'var(--good)':q>30?'#f5a300':'var(--bad)'});
   if(tab==='runs'){const el=$('#runs');if(el)el.innerHTML=runsHtml()}
   $('#hDay').textContent='Day '+G.day0+' · '+DAYS[(G.day0-1)%7];$('#hTime').textContent=clockStr();$('#hCash').textContent=money(G.cash);$('#hCash').className=G.cash<0?'neg':'';
-  $('#hToday').textContent=(pr>0?'+':'')+money(pr);$('#hToday').className=pr<0?'neg':'pos';$('#hNet').textContent=money(G.cash-G.loan);$('#hAv').textContent=k.av;$('#hOt').textContent=k.ot;$('#hLd').textContent=d.loads+' / '+d.drops;advice()}
+  $('#hToday').textContent=(pr>0?'+':'')+money(pr);$('#hToday').className=pr<0?'neg':'pos';$('#hNet').textContent=money(G.cash-G.loan);$('#hAv').textContent=k.av;$('#hOt').textContent=k.ot;$('#hLd').textContent=d.loads+' / '+d.drops;advice();tutTick()}
 document.addEventListener('change',e=>{const el=e.target.closest('[data-chg]');if(!el)return;const[k,v]=el.dataset.chg.split(':'),val=+el.value;
   if(k==='fd')G.deps[sel].fkDock[+v]=val;else if(k==='dtruck')draft.truck=val;else if(k==='dseal')draft.seal=val;
   else{const o=G.fleet.find(o=>o.id===+v)||(S.trucks.find(t=>t.id===+v)||{}).o;if(o){if(k==='route')o.route=val;else if(k==='dstart'){o.drv.start=val;render()}}}});
-document.addEventListener('keydown',e=>{if(modal||/SELECT|INPUT/.test(e.target.tagName))return;if(e.code==='Space'){e.preventDefault();if(speed){lastSpeed=speed;speed=0}else speed=lastSpeed;render()}else if('1234'.includes(e.key)){speed=[1,2,4,8][+e.key-1];render()}});
+document.addEventListener('keydown',e=>{if(e.code==='Escape'){shellEsc();return}if(modal||menuOpen||/SELECT|INPUT/.test(e.target.tagName))return;if(e.code==='Space'){e.preventDefault();if(speed){lastSpeed=speed;speed=0}else speed=lastSpeed;render()}else if('1234'.includes(e.key)){speed=[1,2,4,8][+e.key-1];render()}});
 let menuCo={n:'Caselka Freight',col:LIVERY[0]};
 function menu(){const inp=$('#coName');if(inp)menuCo.n=inp.value;showModal(`<h2>New network</h2><p>Name your company and pick a livery. It goes on your depots and trucks.</p><input id="coName" maxlength="24" value="${menuCo.n.replace(/"/g,'')}" style="width:100%;font:inherit;font-weight:700;padding:10px;border:1.5px solid #1d1f21;border-radius:6px">
   <div class="seg" style="margin:8px 0 14px">${LIVERY.map((c,i)=>`<button data-act="liv:${i}" style="background:${c};min-height:36px;outline:${c===menuCo.col?'3px solid #ffd200':'none'};outline-offset:1px"></button>`).join('')}</div>
   <h3>Choose a scenario</h3>${Object.entries(SCEN).map(([k,s])=>`<div class="rowx"><div class="t"><b>${s[0]}</b><span>${s[1]}</span></div><button class="pri" data-act="start:${k}">Play</button></div>`).join('')}`)}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||b.disabled)return;if(b.tagName==='A')e.preventDefault();const[a,p,p2]=b.dataset.act.split(':'),g=G.deps[sel],sd=S.deps[sel];sfx('click');
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||b.disabled)return;if(b.tagName==='A')e.preventDefault();const[a,p,p2]=b.dataset.act.split(':');sfx('click');if(shellAct(a,p,p2,b))return;const g=G.deps[sel],sd=S.deps[sel];
   if(a==='tab')tab=p;else if(a==='speed')speed=+p;else if(a==='sel'){sel=+p;if(tab==='invest')tab='team';view('depot')}
   else if(a==='snd'){G.snd=!G.snd;sfx('click')}
   else if(a==='view')view(p);else if(a==='zoom'){const c=$('#c');zoomAt(+p,c.clientWidth/2,c.clientHeight/2)}
@@ -476,13 +477,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(
   render()});
 function begin(){G.day0=G.day;if(speed)lastSpeed=speed;speed=0;if(!G.deps[sel].own)sel=0;draft.seal=G.deps[sel].s0+30;startDay()}
 
-G=load();const resumed=!!G;if(!G)newGame();begin();
-showModal(`<h2>Pallet Flow: Depot Manager</h2><p>You run a distribution network. Stores pay for every pallet delivered and fine you for empty shelves and late trucks. Rival carriers want your contracts.</p>
-<ul><li><b>Depot:</b> shifts from 2am to 10pm, inbound stock, chilled goods, forklift crew.</li><li><b>Fleet:</b> trucks and their drivers: start times, hours, breaks, fridge units, diesel.</li><li><b>Stores:</b> receiving hours, tailgate-only sites, regional runs, tenders.</li><li><b>Runs:</b> the plan board for standing runs, and today's live runsheet.</li><li><b>Invest:</b> upgrades, loans, two more depots, achievements.</li></ul>
-<p>Each day starts paused so you can plan. Drag the map to move, pinch or scroll to zoom. Progress saves each night.</p>
-${resumed?`<button class="pri go" data-act="continue">Continue day ${G.day} · ${G.co.n}</button><button class="go" data-act="menu">New game</button>`:`<button class="pri go" data-act="menu">Start</button>`}`);
 let last=performance.now(),acc=0,uiT=0;
-function frame(now){const dt=Math.min(.1,(now-last)/1000);last=now;
+function frame(now){const dt=Math.min(.1,(now-last)/1000);last=now;if(!G||!S){requestAnimationFrame(frame);return}
   if(!modal&&!S.over&&speed){acc+=dt*speed*2;let n=0;while(acc>.1&&n<40&&!S.over){step(.1);acc-=.1;n++}if(n===40)acc=0}
   draw();uiT+=dt;if(uiT>.35){uiT=0;if(!S.over)live()}requestAnimationFrame(frame)}
 addEventListener('resize',()=>clampCam());

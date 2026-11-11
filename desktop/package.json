@@ -1,0 +1,31 @@
+{
+  "name": "pallet-flow-depot-manager",
+  "productName": "Pallet Flow Depot Manager",
+  "version": "0.6.0",
+  "description": "Run a distribution network: depots, forklifts, drivers, trucks and stores.",
+  "author": "Caselka",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "start:demo": "electron . --demo",
+    "copy": "node copy-game.js",
+    "dist": "npm run copy && electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "optionalDependencies": {
+    "steamworks.js": "^0.4.0"
+  },
+  "build": {
+    "appId": "au.caselka.palletflow",
+    "files": ["main.js", "preload.js", "game/**"],
+    "asarUnpack": ["node_modules/steamworks.js/**"],
+    "win": { "target": ["zip"] },
+    "mac": { "target": ["zip"], "category": "public.app-category.simulation-games" },
+    "linux": { "target": ["zip"], "category": "Game" }
+  }
+}
