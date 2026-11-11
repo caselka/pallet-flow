@@ -4,7 +4,7 @@ A live top-down simulation of a warehouse, its forklifts, a truck fleet and thre
 
 **Live:** https://caselka.github.io/pallet-flow/
 
-**Game:** https://caselka.github.io/pallet-flow/game.html — Depot Manager. Run the depot for profit: wages, truck leases, fuel per km, store contracts, penalties for empty shelves, daily profit and loss.
+**Game:** https://caselka.github.io/pallet-flow/game.html — Depot Manager. Run a distribution network: up to three depots and 30 stores, shifts from 2am to 10pm, named drivers with hours and breaks, chilled goods, multi-drop planned runs, delivery windows, tenders against rival carriers, fuel, wages and a live runsheet. Works on phone and desktop.
 
 One self-contained `index.html`. No build step, no libraries. Open the file or visit the link.
 
